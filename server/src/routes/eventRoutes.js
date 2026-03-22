@@ -17,13 +17,13 @@ router.get('/', listEvents);
 router.get('/:id', getEvent);
 
 // Organizer/Admin Routes
-router.post('/', protect, authorize('organizer', 'admin', 'org'), createEvent);
-router.put('/:id', protect, authorize('organizer', 'admin', 'org'), updateEvent);
-router.delete('/:id', protect, authorize('organizer', 'admin', 'org'), deleteEvent); 
+router.post('/', protect, authorize('org', 'admin'), createEvent);
+router.put('/:id', protect, authorize('org', 'admin'), updateEvent);
+router.delete('/:id', protect, authorize('org', 'admin'), deleteEvent);
 
-// Volunteer Routes
-router.post('/:id/rsvp', protect, authorize('volunteer', 'organizer', 'admin', 'org'), rsvpEvent);
-router.post('/:id/cancel-rsvp', protect, authorize('volunteer', 'organizer', 'admin', 'org'), cancelRsvp);
+// Volunteer and Organizer Routes
+router.post('/:id/rsvp', protect, rsvpEvent);
+router.post('/:id/cancel-rsvp', protect, cancelRsvp);
 
 // Ratings endpoint (placeholder for now)
 router.get('/:id/ratings', (req, res) => {
