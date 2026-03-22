@@ -26,14 +26,20 @@ import ChatCommunity from "./pages/ChatCommunity";
 import { AuthProvider } from "./context/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
 import OrganizationRoute from "./components/OrganizationRoute";
+import OrgRoute from "./components/OrgRoute";
+import AdminRoute from "./components/AdminRoute";
 import Profile from "./pages/Profile";
 import Organization from "./pages/Organization";
+import Organizations from "./pages/Organizations";
 import OrganizationDetailsForm from "./pages/OrganizationDetailsForm";
-import Donations from "./pages/Donations"; // ✅ import Donations page
+import Donations from "./pages/Donations";
 import MapWithList from "./pages/MapWithList";
+import CleanupAnalyze from "./pages/CleanupAnalyze";
+import TrashMarkerMap from "./pages/TrashMarkerMap";
+import TrashMarkerList from "./pages/TrashMarkerList";
+import NotifyEvent from "./pages/NotifyEvent";
 import ErrorBoundary from "./components/ErrorBoundary";
 
-// Temporary placeholder component for missing pages
 const ComingSoon = ({ pageName }) => (
   <div className="min-h-screen bg-gradient-to-br from-slate-50 via-cyan-50 to-blue-50 flex items-center justify-center">
     <div className="text-center">
@@ -48,6 +54,7 @@ const ComingSoon = ({ pageName }) => (
     </div>
   </div>
 );
+
 function ScrollToTop() {
   const { pathname } = useLocation();
   React.useEffect(() => {
@@ -63,7 +70,7 @@ function App() {
         <BrowserRouter>
           <ScrollToTop />
           <Routes>
-            {/* Public Routes - wrapped with OrganizationRoute for profile completion check */}
+            {/* Public Routes */}
             <Route
               path="/"
               element={
@@ -76,8 +83,29 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/donation-success" element={<DonationSuccess />} />
             <Route path="/success" element={<DonationSuccess />} />
+            <Route path="/map" element={<MapWithList />} />
+            <Route path="/map/markers" element={<TrashMarkerMap />} />
+            <Route path="/map/markers/list" element={<TrashMarkerList />} />
+            <Route
+              path="/notify-event"
+              element={
+                <PrivateRoute>
+                  <NotifyEvent />
+                </PrivateRoute>
+              }
+            />
+            <Route path="/impact" element={<ComingSoon pageName="Impact" />} />
+            <Route path="/about" element={<ComingSoon pageName="About" />} />
+            <Route
+              path="/cleanup/analyze"
+              element={
+                <PrivateRoute>
+                  <CleanupAnalyze />
+                </PrivateRoute>
+              }
+            />
 
-            {/* Organization Profile Setup */}
+            {/* Organization Profile Setup — must complete before accessing org routes */}
             <Route
               path="/organization-details"
               element={
@@ -87,17 +115,7 @@ function App() {
               }
             />
 
-            {/* Protected Routes - wrapped with both PrivateRoute and OrganizationRoute */}
-            <Route
-              path="/admin/create-event"
-              element={
-                <PrivateRoute>
-                  <OrganizationRoute>
-                    <CreateEvent />
-                  </OrganizationRoute>
-                </PrivateRoute>
-              }
-            />
+            {/* Volunteer & All-user Protected Routes */}
             <Route
               path="/events"
               element={
@@ -119,67 +137,13 @@ function App() {
               }
             />
             <Route
-              path="/events/:id/manage"
+              path="/profile"
               element={
                 <PrivateRoute>
-                  <OrganizationRoute>
-                    <EventManagement />
-                  </OrganizationRoute>
+                  <Profile />
                 </PrivateRoute>
               }
             />
-            <Route
-              path="/dashboard"
-              element={
-                <PrivateRoute>
-                  <OrganizationRoute>
-                    <AdminDashboard />
-                  </OrganizationRoute>
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/admin/dashboard"
-              element={
-                <PrivateRoute>
-                  <OrganizationRoute>
-                    <AdminDashboard />
-                  </OrganizationRoute>
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/volunteer/dashboard"
-              element={
-                <PrivateRoute>
-                  <OrganizationRoute>
-                    <VolunteerDashboard />
-                  </OrganizationRoute>
-                </PrivateRoute>
-              }
-            />
-
-          <Route
-            path="/certificates"
-            element={
-              <PrivateRoute>
-                <ComingSoon pageName="Certificates" />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <PrivateRoute>
-                <Profile />
-              </PrivateRoute>
-            }
-          />
-          <Route path="/impact" element={<ComingSoon pageName="Impact" />} />
-          <Route path="/about" element={<ComingSoon pageName="About" />} />
-          <Route path="/map" element={<MapWithList />} />
-
-            {/* ✅ Replace ComingSoon with Donations page */}
             <Route
               path="/donations"
               element={
@@ -190,8 +154,6 @@ function App() {
                 </PrivateRoute>
               }
             />
-
-            {/* Chat Community Route */}
             <Route
               path="/chat"
               element={
@@ -202,13 +164,44 @@ function App() {
                 </PrivateRoute>
               }
             />
-
             <Route
               path="/certificates"
               element={
                 <PrivateRoute>
                   <OrganizationRoute>
                     <Certificates />
+                  </OrganizationRoute>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/organization/:id"
+              element={
+                <PrivateRoute>
+                  <OrganizationRoute>
+                    <Organization />
+                  </OrganizationRoute>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/organizations"
+              element={
+                <PrivateRoute>
+                  <OrganizationRoute>
+                    <Organizations />
+                  </OrganizationRoute>
+                </PrivateRoute>
+              }
+            />
+
+            {/* Volunteer-specific routes */}
+            <Route
+              path="/volunteer/dashboard"
+              element={
+                <PrivateRoute>
+                  <OrganizationRoute>
+                    <VolunteerDashboard />
                   </OrganizationRoute>
                 </PrivateRoute>
               }
@@ -233,24 +226,26 @@ function App() {
                 </PrivateRoute>
               }
             />
+
+            {/* Organizer-only routes */}
             <Route
-              path="/admin/volunteers"
+              path="/admin/create-event"
               element={
-                <PrivateRoute>
+                <OrgRoute>
                   <OrganizationRoute>
-                    <AdminVolunteers />
+                    <CreateEvent />
                   </OrganizationRoute>
-                </PrivateRoute>
+                </OrgRoute>
               }
             />
             <Route
-              path="/admin/profile"
+              path="/events/:id/manage"
               element={
-                <PrivateRoute>
+                <OrgRoute>
                   <OrganizationRoute>
-                    <AdminOrgProfile />
+                    <EventManagement />
                   </OrganizationRoute>
-                </PrivateRoute>
+                </OrgRoute>
               }
             />
             <Route
@@ -263,38 +258,48 @@ function App() {
                 </PrivateRoute>
               }
             />
-            <Route
-              path="/profile"
-              element={
-                <PrivateRoute>
-                  <OrganizationRoute>
-                    <Profile />
-                  </OrganizationRoute>
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/organization/:id"
-              element={
-                <PrivateRoute>
-                  <OrganizationRoute>
-                    <Organization />
-                  </OrganizationRoute>
-                </PrivateRoute>
-              }
-            />
-            <Route path="/impact" element={<ComingSoon pageName="Impact" />} />
-            <Route path="/about" element={<ComingSoon pageName="About" />} />
 
-            {/* 404 Route */}
+            {/* Admin-only routes */}
+            <Route
+              path="/dashboard"
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/dashboard"
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/volunteers"
+              element={
+                <AdminRoute>
+                  <AdminVolunteers />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/profile"
+              element={
+                <AdminRoute>
+                  <AdminOrgProfile />
+                </AdminRoute>
+              }
+            />
+
+            {/* 404 */}
             <Route
               path="*"
               element={
                 <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-cyan-50 to-blue-50">
                   <div className="text-center">
-                    <h1 className="text-4xl font-bold text-gray-800 mb-4">
-                      404
-                    </h1>
+                    <h1 className="text-4xl font-bold text-gray-800 mb-4">404</h1>
                     <p className="text-gray-600 mb-8">Page not found</p>
                     <Link
                       to="/"

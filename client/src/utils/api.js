@@ -34,20 +34,72 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor for error logging and auth handling
+// Response interceptor — auto-refresh access token on 401
+let isRefreshing = false;
+let refreshQueue = []; // callbacks waiting for the new token
+
+const processQueue = (error, token = null) => {
+  refreshQueue.forEach((cb) => (error ? cb.reject(error) : cb.resolve(token)));
+  refreshQueue = [];
+};
+
+// Auth routes that must never trigger the token-refresh interceptor
+const AUTH_BYPASS_URLS = ["/auth/login", "/auth/register", "/auth/logout", "/auth/refresh-token"];
+
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    console.log("API Error Response:", error.response?.data);
+  async (error) => {
+    const originalRequest = error.config;
 
-    // Handle auth errors
-    if (error.response?.status === 401) {
-      // Token might be expired or invalid
-      console.log("Authentication error detected, clearing user data");
-      localStorage.removeItem("user");
-      // Don't redirect here - let the app handle it through auth context
+    // Don't intercept auth endpoints — a 401 there means bad credentials, not an expired token
+    const isAuthRoute = AUTH_BYPASS_URLS.some((u) => originalRequest?.url?.includes(u));
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthRoute) {
+      if (isRefreshing) {
+        // Queue this request until the refresh resolves
+        return new Promise((resolve, reject) => {
+          refreshQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return api(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const { data } = await api.post("/auth/refresh-token", {}, { withCredentials: true });
+        const newToken = data.accessToken;
+
+        // Persist new token
+        const userData = localStorage.getItem("user");
+        if (userData) {
+          const user = JSON.parse(userData);
+          user.token = newToken;
+          localStorage.setItem("user", JSON.stringify(user));
+          localStorage.setItem("token", newToken);
+        }
+
+        api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        processQueue(null, newToken);
+        return api(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        // Refresh failed — clear session
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+        window.location.href = "/login";
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
     }
 
+    console.log("API Error Response:", error.response?.data);
     return Promise.reject(error);
   }
 );
@@ -255,6 +307,10 @@ export const communityAPI = {
 
 // Groups API functions
 export const groupsAPI = {
+  getMyGroups: async () => {
+    const response = await api.get("/groups/me");
+    return response.data;
+  },
   getByOrganization: async (orgId) => {
     const response = await api.get(`/groups/${orgId}`);
     return response.data;
@@ -304,9 +360,15 @@ export const chatAPI = {
     return response.data;
   },
   sendMessage: async (groupId, content) => {
-    const response = await api.post(`/chat/${groupId}/messages`, {
-      content,
-    });
+    const response = await api.post(`/chat/${groupId}/messages`, { content });
+    return response.data;
+  },
+  editMessage: async (messageId, content) => {
+    const response = await api.patch(`/chat/messages/${messageId}`, { content });
+    return response.data;
+  },
+  deleteMessage: async (messageId) => {
+    const response = await api.delete(`/chat/messages/${messageId}`);
     return response.data;
   },
 };
