@@ -13,6 +13,19 @@ const { protect } = require("../middlewares/authMiddleware.js");
 
 const router = express.Router();
 
+// Get all registrations for the current logged-in user
+router.get("/my", protect, async (req, res) => {
+  try {
+    const Registration = require("../models/Registration.js");
+    const registrations = await Registration.find({ user: req.user.userId })
+      .populate("event", "title startDate location status image")
+      .sort({ createdAt: -1 });
+    res.json({ registrations });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 // Register for event (with QR generation)
 router.post("/:eventId/register", protect, registerForEvent);
 

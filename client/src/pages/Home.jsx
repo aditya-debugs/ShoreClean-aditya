@@ -27,13 +27,13 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { getEvents } from "../utils/api";
 import { canCreateEvents, isVolunteer, isOrganizer } from "../utils/roleUtils";
+import TestimonialsSection from "../components/ui/TestimonialsSection";
 
 const Home = () => {
   const [quotes, setQuotes] = useState([]);
   const [carouselSlides, setCarouselSlides] = useState([]);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
-  const [testimonials, setTestimonials] = useState([]);
   const [features, setFeatures] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -92,72 +92,27 @@ const Home = () => {
         name: "Priya Sharma",
         role: "Environmental Activist",
         image:
-          "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop&crop=face",
+          "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80",
         text: "ShoreClean has revolutionized how we organize cleanup drives. The AI-powered coordination and real-time tracking have increased our volunteer participation by 300%.",
+        rating: 5,
       },
       {
         id: 2,
         name: "Arjun Patel",
         role: "Volunteer Coordinator",
         image:
-          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=face",
+          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80",
         text: "The gamification features keep volunteers engaged and motivated. Our regular participants have grown from 20 to over 200 in just six months!",
+        rating: 5,
       },
       {
         id: 3,
         name: "Dr. Meera Krishnan",
         role: "Marine Biologist",
         image:
-          "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=80&h=80&fit=crop&crop=face",
+          "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=688&q=80",
         text: "The impact tracking and analytics help us measure our environmental progress scientifically. It's incredibly valuable for our research and reporting.",
-      },
-      {
-        id: 4,
-        name: "Rohit Verma",
-        role: "Beach Cleanup Organizer",
-        image:
-          "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&h=80&fit=crop&crop=face",
-        text: "Coordinating large beach cleanup events used to be chaotic. ShoreClean's QR check-in and live updates made our last event seamless for 500+ volunteers.",
-      },
-      {
-        id: 5,
-        name: "Ananya Iyer",
-        role: "NGO Program Director",
-        image:
-          "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=80&h=80&fit=crop&crop=face",
-        text: "The CSR integration and 80G tax benefit tracking has helped us secure partnerships with three major corporates. It's been a game-changer for our funding.",
-      },
-      {
-        id: 6,
-        name: "Kiran Desai",
-        role: "Regular Volunteer",
-        image:
-          "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop&crop=face",
-        text: "Earning badges and seeing my total kilos of trash collected keeps me coming back. I've attended 12 events this year because of how rewarding the platform makes it.",
-      },
-      {
-        id: 7,
-        name: "Lakshmi Nair",
-        role: "School Teacher",
-        image:
-          "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=80&h=80&fit=crop&crop=face",
-        text: "I brought my students to a ShoreClean event and the real-time trash mapping made it educational as well as impactful. They're hooked on environmental action now.",
-      },
-      {
-        id: 8,
-        name: "Dev Malhotra",
-        role: "Corporate Sustainability Lead",
-        image:
-          "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=80&h=80&fit=crop&crop=face",
-        text: "We've partnered with ShoreClean for our annual CSR initiative. The transparent reporting and certificate generation makes compliance reporting effortless.",
-      },
-      {
-        id: 9,
-        name: "Fatima Shaikh",
-        role: "Coastal Community Leader",
-        image:
-          "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=80&h=80&fit=crop&crop=face",
-        text: "Our fishing village has seen a real difference in beach quality since using ShoreClean to coordinate cleanups. The AI chatbot even helps members who don't speak English.",
+        rating: 5,
       },
     ]);
     // Features
@@ -570,46 +525,67 @@ const Home = () => {
       </section>
 
       {/* Testimonials Section */}
-      <section id="testimonials" className="bg-background py-20 relative">
-        <div className="container z-10 mx-auto px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-            viewport={{ once: true }}
-            className="flex flex-col items-center justify-center max-w-[540px] mx-auto"
-          >
-            <div className="flex justify-center">
-              {/* <div className="border border-cyan-200 bg-cyan-50 text-cyan-700 py-1 px-4 rounded-lg text-sm font-medium">
-                Testimonials
-              </div> */}
-            </div>
-            <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold tracking-tighter mt-5 text-center text-gray-800">
+      <section id="testimonials" className="py-20 px-6 bg-white/80">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-800 mb-4">
               What Our{" "}
               <span className="bg-gradient-to-r from-cyan-500 to-blue-500 bg-clip-text text-transparent">
                 Community Says
               </span>
             </h2>
-            <p className="text-center mt-5 text-gray-500">
-              Hear from organizers, volunteers, and partners who are making a
-              difference with ShoreClean.
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Hear from organizers and volunteers who are making a difference
+              with ShoreClean.
             </p>
-          </motion.div>
-
-          <div className="flex justify-center gap-6 mt-10 [mask-image:linear-gradient(to_bottom,transparent,black_25%,black_75%,transparent)] max-h-[740px] overflow-hidden">
-            <TestimonialsColumn
-              testimonials={testimonials.slice(0, 3)}
-              duration={15}
-            />
-            <TestimonialsColumn
-              testimonials={testimonials.slice(3, 6)}
-              duration={19}
-            />
-            <TestimonialsColumn
-              testimonials={testimonials.slice(6, 9)}
-              duration={17}
-            />
           </div>
+          {testimonials.length > 0 ? (
+            <div className="grid md:grid-cols-3 gap-8">
+              {testimonials.map((testimonial) => (
+                <div
+                  key={testimonial.id}
+                  className="bg-white p-8 rounded-xl shadow-sm transition-all duration-300 border border-gray-100 transform hover:scale-105 hover:shadow-xl hover:border-cyan-300"
+                >
+                  <div className="flex items-center mb-6">
+                    <img
+                      src={testimonial.image}
+                      alt={testimonial.name}
+                      className="w-16 h-16 rounded-full object-cover mr-4"
+                    />
+                    <div>
+                      <h4 className="font-semibold text-gray-800">
+                        {testimonial.name}
+                      </h4>
+                      <p className="text-cyan-500 text-sm">
+                        {testimonial.role}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center mb-4">
+                    {[...Array(testimonial.rating)].map((_, i) => (
+                      <Star
+                        key={i}
+                        className="h-5 w-5 text-amber-400 fill-current"
+                      />
+                    ))}
+                  </div>
+                  <p className="text-gray-600 mb-6 leading-relaxed italic">
+                    "{testimonial.text}"
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-white/90 rounded-xl border border-gray-200/50">
+              <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-medium text-gray-600 mb-2">
+                No testimonials yet
+              </h3>
+              <p className="text-gray-500">
+                Be the first to share your ShoreClean experience!
+              </p>
+            </div>
+          )}
         </div>
       </section>
 

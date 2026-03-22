@@ -21,7 +21,7 @@ function MapWithList() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/markers")
+    fetch(`${import.meta.env.VITE_API_URL || "http://localhost:8000/api"}/markers`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         return res.json();

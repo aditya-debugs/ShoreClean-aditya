@@ -13,6 +13,7 @@ import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import { useAuth } from "../../context/AuthContext";
 import { isVolunteer } from "../../utils/roleUtils";
+import { getCertificates } from "../../utils/api";
 
 const VolunteerCertificates = () => {
   const { currentUser } = useAuth();
@@ -30,35 +31,16 @@ const VolunteerCertificates = () => {
   useEffect(() => {
     const fetchCertificates = async () => {
       try {
-        // Mock certificates data - replace with actual API call
-        const mockCertificates = [
-          {
-            id: 1,
-            title: "Coastal Cleanup Volunteer",
-            eventName: "Beach Cleanup - Santa Monica",
-            dateEarned: "2024-03-15",
-            type: "participation",
-            downloadUrl: "/certificates/cert-1.pdf",
-          },
-          {
-            id: 2,
-            title: "Environmental Champion",
-            eventName: "Multiple Events Completion",
-            dateEarned: "2024-02-20",
-            type: "achievement",
-            downloadUrl: "/certificates/cert-2.pdf",
-          },
-          {
-            id: 3,
-            title: "Ocean Guardian",
-            eventName: "Pier Cleanup - Long Beach",
-            dateEarned: "2024-01-10",
-            type: "participation",
-            downloadUrl: "/certificates/cert-3.pdf",
-          },
-        ];
-
-        setCertificates(mockCertificates);
+        const data = await getCertificates();
+        const certs = (Array.isArray(data) ? data : data.certificates || []).map((cert) => ({
+          id: cert._id,
+          title: cert.metadata?.title || "Volunteer Certificate",
+          eventName: cert.event?.title || "Coastal Cleanup Event",
+          dateEarned: cert.issuedAt,
+          type: cert.metadata?.type || "participation",
+          downloadUrl: cert.certUrl || null,
+        }));
+        setCertificates(certs);
       } catch (error) {
         console.error("Error fetching certificates:", error);
       } finally {

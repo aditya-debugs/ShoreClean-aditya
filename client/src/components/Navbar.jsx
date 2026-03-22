@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Menu, X, Waves, LogOut, User, ChevronDown, Building2 } from "lucide-react";
+import { Menu, X, Waves, LogOut, User, Settings, Calendar, Award } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import api from "../utils/api";
 import {
@@ -78,16 +78,18 @@ const Navbar = () => {
       }`}
     >
       <div
-        className={`max-w-7xl mx-auto px-6 py-3 rounded-2xl backdrop-blur-lg transition-all duration-300 ${
+        className={`w-screen max-w-5xl mx-auto px-8 py-3 rounded-2xl backdrop-blur-lg transition-all duration-300 ${
           scrolled
             ? "bg-white/95 shadow-lg border border-cyan-100"
             : "bg-white/85 shadow-md border border-white/60"
         }`}
       >
-        <div className="flex items-center gap-4">
-
+        <div className="flex items-center justify-between gap-6">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 group shrink-0">
+          <Link
+            to="/"
+            className="flex items-center gap-2 group cursor-pointer flex-shrink-0"
+          >
             <div className="relative">
               <Waves className="h-7 w-7 text-cyan-600 group-hover:text-cyan-700 transition-colors duration-300" />
               <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-400 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-pulse" />
@@ -97,22 +99,149 @@ const Navbar = () => {
             </span>
           </Link>
 
-          {/* Desktop Nav — centred, fills available space */}
-          <div className="hidden md:flex items-center gap-0.5 flex-1 justify-center">
-            {navigationItems.map((item) => (
-              <Link key={item.name} to={item.path} className={navLinkClass(item.path)}>
-                {item.name}
-                {isActive(item.path) && (
-                  <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-cyan-500 rounded-full" />
-                )}
-              </Link>
-            ))}
+          {/* Desktop Nav Items — centred */}
+          <div className="hidden md:flex items-center gap-2 flex-1 justify-center">
+            {isAuthenticated
+              ? navigationItems.map((item) => {
+                  const itemPathname = item.path?.split("?")[0];
+                  const isActive =
+                    item.path &&
+                    (itemPathname === "/"
+                      ? location.pathname === "/"
+                      : location.pathname.startsWith(itemPathname));
+                  return item.onClick ? (
+                    <button
+                      key={item.name}
+                      onClick={() => {
+                        if (item.onClick === "scrollToTestimonials")
+                          scrollToTestimonials();
+                      }}
+                      className="px-4 py-2 rounded-xl text-[0.9rem] text-gray-700 hover:text-cyan-600 hover:bg-cyan-50 transition-all duration-300 font-medium relative group whitespace-nowrap"
+                    >
+                      {item.name}
+                      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-cyan-500 group-hover:w-3/4 transition-all duration-300" />
+                    </button>
+                  ) : (
+                    <Link
+                      key={item.name}
+                      to={item.path}
+                      className={`px-4 py-2 rounded-xl text-[0.9rem] font-medium relative group whitespace-nowrap transition-all duration-300 ${
+                        isActive
+                          ? "text-cyan-600 bg-cyan-50"
+                          : "text-gray-700 hover:text-cyan-600 hover:bg-cyan-50"
+                      }`}
+                    >
+                      {item.name}
+                      <div
+                        className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 bg-cyan-500 transition-all duration-300 ${
+                          isActive ? "w-3/4" : "w-0 group-hover:w-3/4"
+                        }`}
+                      />
+                    </Link>
+                  );
+                })
+              : [
+                  { name: "About", path: "/about" },
+                  { name: "Impact", path: "/impact" },
+                ].map((item) => (
+                  <Link
+                    key={item.name}
+                    to={item.path}
+                    className="px-4 py-2 rounded-xl text-[0.9rem] text-gray-700 hover:text-cyan-600 hover:bg-cyan-50 transition-all duration-300 font-medium relative group whitespace-nowrap"
+                  >
+                    {item.name}
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-cyan-500 group-hover:w-3/4 transition-all duration-300" />
+                  </Link>
+                ))}
+          </div>
 
-            {/* Guest extra links */}
-            {!isAuthenticated && (
-              <Link to="/about" className={navLinkClass("/about")}>
-                About
-              </Link>
+          {/* Desktop right — user menu OR sign-in buttons */}
+          <div className="hidden md:flex items-center gap-2 flex-shrink-0">
+            {isAuthenticated ? (
+              <div className="relative">
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-cyan-50 transition-all duration-300"
+                >
+                  <User className="w-7 h-7 text-cyan-600" />
+                  <span className="text-gray-700 text-[0.9rem] font-medium whitespace-nowrap">
+                    {currentUser?.name || "User"}
+                  </span>
+                </button>
+
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
+                    <Link
+                      to={profilePath}
+                      className="flex items-center px-4 py-2 text-gray-700 hover:bg-cyan-50 transition-colors text-sm"
+                      onClick={() => setShowUserMenu(false)}
+                    >
+                      <User className="h-4 w-4 mr-3" />
+                      Profile
+                    </Link>
+
+                    {userIsVolunteer && (
+                      <>
+                        <Link
+                          to="/volunteer/my-events"
+                          className="flex items-center px-4 py-2 text-gray-700 hover:bg-cyan-50 transition-colors text-sm"
+                          onClick={() => setShowUserMenu(false)}
+                        >
+                          <Calendar className="h-4 w-4 mr-3" />
+                          My Events
+                        </Link>
+                        <Link
+                          to="/volunteer/certificates"
+                          className="flex items-center px-4 py-2 text-gray-700 hover:bg-cyan-50 transition-colors text-sm"
+                          onClick={() => setShowUserMenu(false)}
+                        >
+                          <Award className="h-4 w-4 mr-3" />
+                          Certificates
+                        </Link>
+                      </>
+                    )}
+
+                    {userIsOrganizer && (
+                      <Link
+                        to="/admin/create-event"
+                        className="flex items-center px-4 py-2 text-gray-700 hover:bg-cyan-50 transition-colors text-sm"
+                        onClick={() => setShowUserMenu(false)}
+                      >
+                        <Calendar className="h-4 w-4 mr-3" />
+                        Create Event
+                      </Link>
+                    )}
+
+                    <div className="border-t border-gray-100 my-1" />
+                    <button
+                      onClick={() => {
+                        logout();
+                        setShowUserMenu(false);
+                        navigate("/login", { replace: true });
+                      }}
+                      className="flex items-center w-full px-4 py-2 text-red-600 hover:bg-red-50 transition-colors text-sm"
+                    >
+                      <LogOut className="h-4 w-4 mr-3" />
+                      Sign Out
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="px-4 py-2 text-sm text-gray-700 hover:text-cyan-600 transition-colors font-medium whitespace-nowrap"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to="/register"
+                  className="px-5 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm rounded-xl hover:from-cyan-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-300 shadow-md font-medium whitespace-nowrap"
+                >
+                  Join Now
+                </Link>
+              </>
             )}
           </div>
 
@@ -220,20 +349,42 @@ const Navbar = () => {
             <div className="flex flex-col gap-1">
               {isAuthenticated ? (
                 <>
-                  {/* Mobile user info */}
-                  <div className="flex items-center gap-3 px-4 py-3 mb-1 bg-cyan-50/50 rounded-xl">
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
-                      {avatarInitial}
-                    </div>
-                    <div className="flex flex-col leading-tight">
-                      <span className="text-sm font-semibold text-gray-800 truncate">
-                        {displayName}
-                      </span>
-                      <span className="text-xs text-cyan-600">
-                        {getUserRoleDisplayName(currentUser)}
-                      </span>
-                    </div>
-                  </div>
+                  {[
+                    ...navigationItems,
+                    { name: "Profile", path: profilePath },
+                  ].map((item) => {
+                    const itemPathname = item.path?.split("?")[0];
+                    const isActive = item.path && (
+                      itemPathname === "/"
+                        ? location.pathname === "/"
+                        : location.pathname.startsWith(itemPathname)
+                    );
+                    return item.onClick === "scrollToTestimonials" ? (
+                      <button
+                        key={item.name}
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          scrollToTestimonials();
+                        }}
+                        className="px-4 py-2 rounded-lg text-gray-700 hover:text-cyan-600 hover:bg-cyan-50 transition-all duration-300 text-left w-full"
+                      >
+                        {item.name}
+                      </button>
+                    ) : (
+                      <Link
+                        key={item.name}
+                        to={item.path}
+                        className={`px-4 py-2 rounded-lg transition-all duration-300 font-medium ${
+                          isActive
+                            ? "text-cyan-600 bg-cyan-50"
+                            : "text-gray-700 hover:text-cyan-600 hover:bg-cyan-50"
+                        }`}
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        {item.name}
+                      </Link>
+                    );
+                  })}
 
                   {navigationItems.map((item) => (
                     <Link

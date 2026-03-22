@@ -12,8 +12,8 @@ import {
   Edit,
   Save,
   X,
-  ArrowLeft,
 } from "lucide-react";
+import BackButton from "../components/BackButton";
 
 const Profile = () => {
   const { currentUser, logout } = useAuth();
@@ -73,13 +73,9 @@ const Profile = () => {
       const submitData = {
         name: editData.name,
         email: editData.email,
-        role: editData.role,
       };
       const response = await api.put("/auth/profile", submitData);
       setProfileData(response.data);
-      if (response.data.profileImage) {
-        setProfileImage(null); // clear file input
-      }
       setIsEditing(false);
       setShowModal(true);
       setTimeout(() => {
@@ -156,14 +152,7 @@ const Profile = () => {
       <Navbar />
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-cyan-50 to-blue-50 pt-24 pb-12">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Back to Home Button */}
-          <Link
-            to="/"
-            className="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors mb-6"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Home
-          </Link>
+          <BackButton className="mb-6" />
 
           {error && (
             <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
@@ -286,22 +275,9 @@ const Profile = () => {
                     <Shield className="w-4 h-4 inline mr-2" />
                     Account Type
                   </label>
-                  {isEditing ? (
-                    <select
-                      value={editData.role}
-                      onChange={(e) =>
-                        setEditData({ ...editData, role: e.target.value })
-                      }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white"
-                    >
-                      <option value="org">Organizer</option>
-                      <option value="user">Volunteer</option>
-                    </select>
-                  ) : (
-                    <div className="bg-gray-50 px-4 py-2 rounded-lg">
-                      {getRoleBadge(profileData?.role || currentUser?.role)}
-                    </div>
-                  )}
+                  <div className="bg-gray-50 px-4 py-2 rounded-lg">
+                    {getRoleBadge(profileData?.role || currentUser?.role)}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">

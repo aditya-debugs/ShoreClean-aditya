@@ -1,16 +1,35 @@
-# Environment variables
+# ── Environment variables ──────────────────────────────────────────────────
 .env
 .env.local
 .env.development
 .env.test
 .env.production
-ai-server/.env
+server/.env
 server/src/.env
 client/.env
+ai-server/.env
 
-# Dependencies
+# ── Node dependencies ──────────────────────────────────────────────────────
 node_modules/
+client/node_modules/
+server/node_modules/
+**/node_modules/
+
+# ── Vite build cache (auto-generated, never commit) ───────────────────────
+client/node_modules/.vite/
+**/.vite/
+
+# ── Build outputs ──────────────────────────────────────────────────────────
+dist/
+build/
+client/dist/
+server/dist/
+*.egg-info/
+.eggs/
+
+# ── Python ─────────────────────────────────────────────────────────────────
 __pycache__/
+**/__pycache__/
 *.pyc
 *.pyo
 *.pyd
@@ -18,56 +37,54 @@ __pycache__/
 venv/
 env/
 ENV/
+.venv/
+ai-server/venv/
+ai-server/.venv/
 
-# Build outputs
-dist/
-build/
-*.egg-info/
-.eggs/
-
-# IDE and Editor files
+# ── IDE / Editor ───────────────────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-.DS_Store
+.cursor/
 
-# Logs
+# ── OS files ───────────────────────────────────────────────────────────────
+.DS_Store
+**/.DS_Store
+Thumbs.db
+
+# ── Logs ───────────────────────────────────────────────────────────────────
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 logs/
 
-# Testing
+# ── Testing / Coverage ─────────────────────────────────────────────────────
 coverage/
 .nyc_output/
 *.lcov
 
-# Cache
+# ── Cache ──────────────────────────────────────────────────────────────────
 .cache/
 .parcel-cache/
 .eslintcache
 
-# Uploads and temporary files
+# ── Uploads / Temp ─────────────────────────────────────────────────────────
 uploads/
 temp/
 tmp/
 *.tmp
 
-# OS files
-Thumbs.db
-.DS_Store
-**/.DS_Store
-
-# API Keys and Credentials
+# ── Credentials / Keys ────────────────────────────────────────────────────
 keys/
 *.pem
 *.key
 *.cert
 
-# Database
+# ── Database ──────────────────────────────────────────────────────────────
 *.db
 *.sqlite
 *.sqlite3

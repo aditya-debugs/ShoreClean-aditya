@@ -76,9 +76,10 @@ export const getNavigationItems = (user) => {
     return [
       { name: "Home", path: "/" },
       { name: "Events", path: "/events" },
-      { name: "Map", path: "/map" },
+      { name: "Maps", path: "/map" },
+      { name: "My Events", path: "/volunteer/my-events" },
       { name: "Community Chat", path: "/chat" },
-      { name: "Donations", path: "/donations" },
+      { name: "Donate", path: "/donations" },
     ];
   }
 
@@ -86,9 +87,20 @@ export const getNavigationItems = (user) => {
     return [
       { name: "Home", path: "/" },
       { name: "Events", path: "/events" },
-      { name: "Map", path: "/map" },
+      { name: "Maps", path: "/map" },
+      { name: "My Events", path: `/events?organizer=${user._id}` },
       { name: "Community Chat", path: "/chat" },
       { name: "Donations", path: "/donations" },
+    ];
+  }
+
+  // Admin navigation
+  if (isAdmin(user)) {
+    return [
+      { name: "Events", path: "/events" },
+      { name: "Maps", path: "/map" },
+      { name: "Dashboard", path: "/admin/dashboard" },
+      { name: "Volunteers", path: "/admin/volunteers" },
     ];
   }
 
