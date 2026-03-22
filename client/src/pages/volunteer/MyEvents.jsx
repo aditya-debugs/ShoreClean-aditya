@@ -5,16 +5,16 @@ import {
   Users,
   MapPin,
   Clock,
-  ArrowLeft,
   Loader,
   CheckCircle,
   XCircle,
 } from "lucide-react";
 import Navbar from "../../components/Navbar";
+import BackButton from "../../components/BackButton";
 import Footer from "../../components/Footer";
 import { useAuth } from "../../context/AuthContext";
 import { isVolunteer } from "../../utils/roleUtils";
-import { getEvents, cancelRsvpForEvent } from "../../utils/api";
+import { getMyRegistrations, cancelRsvpForEvent } from "../../utils/api";
 
 const MyEvents = () => {
   const { currentUser } = useAuth();
@@ -33,13 +33,9 @@ const MyEvents = () => {
   useEffect(() => {
     const fetchMyEvents = async () => {
       try {
-        const events = await getEvents();
-        // Filter events user has RSVP'd to
-        const userEvents = events.filter(
-          (event) =>
-            event.attendees && event.attendees.includes(currentUser._id)
-        );
-        setMyEvents(userEvents);
+        const data = await getMyRegistrations();
+        const events = (data.registrations || []).map((reg) => reg.event).filter(Boolean);
+        setMyEvents(events);
       } catch (error) {
         console.error("Error fetching my events:", error);
       } finally {
@@ -95,12 +91,7 @@ const MyEvents = () => {
       <Navbar />
       <section className="pt-32 pb-12 px-6">
         <div className="max-w-6xl mx-auto">
-          <button
-            className="flex items-center gap-2 mb-8 px-4 py-2 bg-white border border-cyan-200 text-cyan-600 rounded-xl hover:bg-cyan-50 hover:border-cyan-300 transition-all duration-300 font-semibold cursor-pointer"
-            onClick={() => navigate("/volunteer/dashboard")}
-          >
-            <ArrowLeft className="h-5 w-5" /> Back to Dashboard
-          </button>
+          <BackButton className="mb-8" />
 
           <div className="mb-8">
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">

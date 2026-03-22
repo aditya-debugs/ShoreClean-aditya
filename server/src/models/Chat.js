@@ -50,6 +50,10 @@ const chatSchema = new mongoose.Schema(
       ref: "Chat",
       required: false,
     },
+    edited: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
@@ -63,13 +67,6 @@ chatSchema.index({ groupId: 1, timestamp: -1 });
 // Virtual for room identifier (now group-based)
 chatSchema.virtual("roomId").get(function () {
   return `${this.orgId}_${this.groupId}`;
-});
-
-module.exports = mongoose.model("Chat", chatSchema);
-
-// Virtual for room identifier
-chatSchema.virtual("roomId").get(function () {
-  return `${this.orgId}_${this.eventId}`;
 });
 
 module.exports = mongoose.model("Chat", chatSchema);

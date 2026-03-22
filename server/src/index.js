@@ -1,11 +1,12 @@
 // server/src/index.js
 // ShoreClean Backend Server - Main Entry Point
-require("dotenv").config({ path: __dirname + "/.env" });
+require("dotenv").config({ path: __dirname + "/../.env" });
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
+const rateLimit = require("express-rate-limit");
 const connectDB = require("./config/db");
 const { initializeSocketHandlers } = require("./utils/socketHandler");
 
@@ -53,6 +54,10 @@ connectDB();
 app.use(express.json());
 app.use(cookieParser());
 
+// Rate limiting
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { message: "Too many requests, please try again later" } });
+const donationLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { message: "Too many donation requests, please try again later" } });
+
 // CORS: allow client to send cookies to server
 app.use(
   cors({
@@ -68,10 +73,10 @@ app.use(
 );
 
 // Mount routes
-app.use("/api/auth", authRoutes);
+app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/volunteers", volunteerRoutes);
-app.use("/api/donations", donationRoutes);
+app.use("/api/donations", donationLimiter, donationRoutes);
 app.use("/api/certificates", certificateRoutes);
 app.use("/api/registrations", registrationRoutes);
 app.use("/api/comments", commentRoutes);
@@ -93,6 +98,34 @@ app.get("/api/profile", protect, async (req, res) => {
   res.json({ message: "Protected profile", user: req.user });
 });
 
+// ─── One-time migration: clean up incorrectly named / extra default groups so
+//     the lazy-init recreates them with the org's name included.
+(async () => {
+  try {
+    const Group = require("./models/Group");
+
+    // Remove old extra types (Community Chat, Certificates & Info)
+    const extra = await Group.deleteMany({
+      type: { $in: ["general", "certificates"] },
+      eventId: null,
+    });
+
+    // Remove generic "Announcements" groups that were created without an org name
+    const generic = await Group.deleteMany({
+      type: "announcements",
+      name: "Announcements", // only the plain name — org-named ones (e.g. "Bhumik — Announcements") are kept
+      eventId: null,
+    });
+
+    const total = (extra.deletedCount || 0) + (generic.deletedCount || 0);
+    if (total > 0) {
+      console.log(`🧹 Migration: removed ${total} stale default group(s) — will be recreated with org name on next /chat visit`);
+    }
+  } catch (e) {
+    console.warn("Migration warning:", e.message);
+  }
+})();
+
 // Health check endpoint
 app.get("/api/health", (req, res) => {
   res.json({
@@ -105,6 +138,12 @@ app.get("/api/health", (req, res) => {
       database: true,
     },
   });
+});
+
+// Global error handler — must be last middleware
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err);
+  res.status(500).json({ message: "Internal server error" });
 });
 
 const PORT = process.env.PORT || 5000;

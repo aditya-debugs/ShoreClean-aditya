@@ -18,7 +18,7 @@ const Register = () => {
     name: "",
     email: "",
     password: "",
-    role: "org", // Changed default role to "org" since this is the organizer registration
+    role: "user", // Default to volunteer; organizers can change this
   });
   const [passwordCriteria, setPasswordCriteria] = useState({
     length: false,

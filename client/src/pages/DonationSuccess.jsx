@@ -18,7 +18,7 @@ export default function DonationSuccess() {
     if (sessionId) {
       // Fetch receipt details from backend using session_id
       fetch(
-        `http://localhost:8000/api/donations/stripe-receipt?session_id=${sessionId}`
+        `${import.meta.env.VITE_API_URL || "http://localhost:8000/api"}/donations/stripe-receipt?session_id=${sessionId}`
       )
         .then((res) => {
           if (!res.ok) {

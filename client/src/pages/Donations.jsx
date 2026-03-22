@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
 import axios from "axios";
 import Navbar from "../components/Navbar";
 import api from "../utils/api";
+import BackButton from "../components/BackButton";
 
 export default function Donations() {
   const [form, setForm] = useState({ name: "", email: "", amount: "" });
@@ -69,14 +69,7 @@ export default function Donations() {
       <Navbar />
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-cyan-50 to-blue-50">
         <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
-          {/* Back button */}
-          <Link
-            to="/"
-            className="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors mb-6"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Go Back
-          </Link>
+          <BackButton className="mb-6" />
 
           <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
             Make a Donation

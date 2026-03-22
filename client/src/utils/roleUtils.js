@@ -76,8 +76,9 @@ export const getNavigationItems = (user) => {
     return [
       { name: "Events", path: "/events" },
       { name: "Maps", path: "/map" },
-      { name: "Testimonials", onClick: "scrollToTestimonials" },
-      { name: "Donation", path: "/donations", isCtaButton: true },
+      { name: "My Events", path: "/volunteer/my-events" },
+      { name: "Community Chat", path: "/chat" },
+      { name: "Donate", path: "/donations" },
     ];
   }
 
@@ -85,8 +86,19 @@ export const getNavigationItems = (user) => {
     return [
       { name: "Events", path: "/events" },
       { name: "Maps", path: "/map" },
-      { name: "Testimonials", onClick: "scrollToTestimonials" },
-      { name: "Community Chat", path: "/chat", isCtaButton: true },
+      { name: "My Events", path: `/events?organizer=${user._id}` },
+      { name: "Community Chat", path: "/chat" },
+      { name: "Donations", path: "/donations" },
+    ];
+  }
+
+  // Admin navigation
+  if (isAdmin(user)) {
+    return [
+      { name: "Events", path: "/events" },
+      { name: "Maps", path: "/map" },
+      { name: "Dashboard", path: "/admin/dashboard" },
+      { name: "Volunteers", path: "/admin/volunteers" },
     ];
   }
 

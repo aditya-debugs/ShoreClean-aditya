@@ -1,5 +1,4 @@
 const Group = require("../models/Group");
-const Community = require("../models/Community");
 const Chat = require("../models/Chat");
 const User = require("../models/User");
 const Event = require("../models/Event");
@@ -11,6 +10,21 @@ const getOrgGroups = async (req, res) => {
 
     if (!orgId) {
       return res.status(400).json({ message: "Organization ID is required" });
+    }
+
+    // Lazy-init: create default community groups if this org has none yet
+    // Only count non-event groups (event groups are created separately per event)
+    const existingCommunityCount = await Group.countDocuments({
+      orgId,
+      isActive: true,
+      type: { $nin: ["event"] },
+    });
+    if (existingCommunityCount === 0) {
+      try {
+        await createDefaultGroups(orgId, orgId);
+      } catch (initErr) {
+        console.error("Failed to init default groups (non-fatal):", initErr.message);
+      }
     }
 
     const groups = await Group.find({
@@ -64,9 +78,9 @@ const createGroup = async (req, res) => {
         .json({ message: "Group name and organization ID are required" });
     }
 
-    // Check if user has permission to create groups (organizer/admin)
+    // Check if user has permission to create groups (org/admin)
     const user = await User.findById(createdBy);
-    if (!user || (user.role !== "admin" && user.role !== "organizer")) {
+    if (!user || (user.role !== "admin" && user.role !== "org")) {
       return res
         .status(403)
         .json({ message: "Only organizers and admins can create groups" });
@@ -231,12 +245,10 @@ const joinGroup = async (req, res) => {
         .json({ message: "User is already a member of this group" });
     }
 
-    // Check if group is public or user has invitation
-    if (!group.settings.isPublic) {
-      // TODO: Implement invitation system
-      return res
-        .status(403)
-        .json({ message: "This group requires an invitation" });
+    // Allow joining public groups; event groups are auto-joined on registration
+    // and community groups are always public
+    if (!group.settings?.isPublic && group.type === "custom") {
+      return res.status(403).json({ message: "This group requires an invitation" });
     }
 
     // Add user to group
@@ -348,97 +360,41 @@ const getGroupMessages = async (req, res) => {
   }
 };
 
-// Create default groups for an organization
+// Create the single default Announcements group for an organization.
+// No Community document is needed — the Group only requires orgId + createdBy.
 const createDefaultGroups = async (orgId, createdBy) => {
   try {
-    // Check if groups already exist for this organization
-    const existingGroups = await Group.find({ orgId });
-    if (existingGroups.length > 0) {
-      console.log(
-        `Groups already exist for orgId ${orgId}, returning existing groups`
-      );
-      return existingGroups;
+    // Guard: skip if a non-event group already exists
+    const existing = await Group.findOne({
+      orgId,
+      type: { $nin: ["event"] },
+    });
+    if (existing) {
+      console.log(`Announcements group already exists for orgId ${orgId}`);
+      return [existing];
     }
 
-    // First, create a test community if it doesn't exist
-    let community = await Community.findOne({
-      $or: [{ slug: "mumbai-coastal-guardians" }, { organizerId: orgId }],
+    // Look up the org's display name so the group name is descriptive
+    const orgUser = await User.findById(orgId).select("name");
+    const orgName = orgUser?.name || "Organization";
+
+    const group = new Group({
+      name: `${orgName} — Announcements`,
+      description: `General announcements and updates from ${orgName}`,
+      type: "announcements",
+      icon: "📢",
+      color: "#3B82F6",
+      settings: { isPublic: true, allowFileUploads: false, allowMentions: true },
+      orgId,
+      createdBy,
+      members: [{ userId: createdBy, role: "admin", joinedAt: new Date() }],
     });
 
-    if (!community) {
-      community = new Community({
-        name: "Mumbai Coastal Guardians Community",
-        description:
-          "A community dedicated to protecting Mumbai's coastal environment",
-        slug: "mumbai-coastal-guardians",
-        organizerId: orgId,
-        organizers: [orgId],
-        members: [orgId],
-        settings: {
-          isPublic: true,
-          allowMemberInvites: true,
-          autoApproveJoinRequests: true,
-        },
-        location: {
-          city: "Mumbai",
-          state: "Maharashtra",
-          country: "India",
-        },
-      });
-      await community.save();
-      console.log(`Created test community for orgId ${orgId}`);
-    }
-
-    const defaultGroups = [
-      {
-        name: "General Announcements",
-        description: "Important updates and announcements from organizers",
-        type: "announcements",
-        icon: "📢",
-        color: "#EF4444",
-      },
-      {
-        name: "Community Chat",
-        description: "General discussion for all community members",
-        type: "general",
-        icon: "💬",
-        color: "#3B82F6",
-      },
-      {
-        name: "Certificates & Info",
-        description: "Information about certificates and achievements",
-        type: "certificates",
-        icon: "🏆",
-        color: "#F59E0B",
-      },
-    ];
-
-    const createdGroups = [];
-    for (const groupData of defaultGroups) {
-      const group = new Group({
-        ...groupData,
-        orgId,
-        communityId: community._id,
-        createdBy,
-        members: [
-          {
-            userId: createdBy,
-            role: "admin",
-            joinedAt: new Date(),
-          },
-        ],
-      });
-
-      const savedGroup = await group.save();
-      createdGroups.push(savedGroup);
-    }
-
-    console.log(
-      `Created ${createdGroups.length} default groups for orgId ${orgId} in community ${community._id}`
-    );
-    return createdGroups;
+    const saved = await group.save();
+    console.log(`✅ Created Announcements group for ${orgName} (orgId ${orgId})`);
+    return [saved];
   } catch (error) {
-    console.error("Error creating default groups:", error);
+    console.error("Error creating default Announcements group:", error);
     throw error;
   }
 };
@@ -501,7 +457,7 @@ const createCommunityGroup = async (req, res) => {
   try {
     const { communityId } = req.params;
     const { name, description, type, eventId, icon, color } = req.body;
-    const createdBy = req.user._id; // From auth middleware
+    const createdBy = req.user.id; // From auth middleware
 
     if (!name || !communityId) {
       return res
@@ -517,7 +473,7 @@ const createCommunityGroup = async (req, res) => {
 
     // Check if user is an organizer of the community
     const isOrganizer = community.organizers.some(
-      (org) => org.userId.toString() === createdBy.toString()
+      (org) => org.userId.toString() === createdBy
     );
 
     if (!isOrganizer && req.user.role !== "admin") {
@@ -580,7 +536,7 @@ const createCommunityGroup = async (req, res) => {
 const joinCommunityGroup = async (req, res) => {
   try {
     const { communityId, groupId } = req.params;
-    const userId = req.user._id;
+    const userId = req.user.id;
 
     // Check if community exists
     const community = await Community.findById(communityId);
@@ -637,8 +593,41 @@ const joinCommunityGroup = async (req, res) => {
   }
 };
 
+// Get all groups that the current user is a member of (for volunteer view)
+const getMyGroups = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const groups = await Group.find({
+      "members.userId": userId,
+      isActive: true,
+    })
+      .populate("eventId", "title startDate location")
+      .populate("orgId", "name orgName")
+      .sort({ createdAt: 1 });
+
+    const groupsWithMeta = await Promise.all(
+      groups.map(async (group) => {
+        const latestMessage = await Chat.findOne({ groupId: group._id })
+          .sort({ timestamp: -1 });
+        return {
+          ...group.toObject(),
+          latestMessage,
+          memberCount: group.members.length,
+        };
+      })
+    );
+
+    res.json({ success: true, data: groupsWithMeta });
+  } catch (error) {
+    console.error("Error fetching user groups:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch groups" });
+  }
+};
+
 module.exports = {
   getOrgGroups,
+  getMyGroups,
   createGroup,
   updateGroup,
   deleteGroup,

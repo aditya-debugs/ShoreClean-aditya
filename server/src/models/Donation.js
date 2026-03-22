@@ -10,6 +10,12 @@ const donationSchema = new mongoose.Schema({
   event: { type: mongoose.Schema.Types.ObjectId, ref: 'Event' }, // optional link to event
   paymentProviderId: { type: String }, // id from Stripe/Paypal/Razorpay
   status: { type: String, enum: ['pending','completed','failed','refunded'], default: 'pending' },
+  paymentDetails: {
+    paymentIntentId: { type: String },
+    paymentStatus: { type: String },
+    amountReceived: { type: Number },
+    currency: { type: String },
+  },
   createdAt: { type: Date, default: Date.now }
 });
 

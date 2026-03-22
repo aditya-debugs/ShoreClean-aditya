@@ -2,39 +2,24 @@ const express = require("express");
 const router = express.Router();
 const {
   getOrgGroups,
+  getMyGroups,
   createGroup,
   updateGroup,
   deleteGroup,
   joinGroup,
   leaveGroup,
   getGroupMessages,
-  createDefaultGroups,
   getCommunityGroups,
   createCommunityGroup,
   joinCommunityGroup,
 } = require("../controllers/groupController");
 const { protect } = require("../middlewares/authMiddleware");
 
+// Current user's joined groups — must be defined BEFORE /:orgId to avoid route conflict
+router.get("/me", protect, getMyGroups);
+
 // Organization group routes (publicly accessible for demo)
 router.get("/:orgId", getOrgGroups); // Get all groups for an organization
-
-// Development route to seed demo groups (remove in production)
-router.post("/:orgId/seed", async (req, res) => {
-  try {
-    const { orgId } = req.params;
-    // Use a placeholder createdBy for demo purposes
-    const createdBy = "674d123456789012345678ab"; // Placeholder user ID
-    const groups = await createDefaultGroups(orgId, createdBy);
-    res.json({
-      success: true,
-      data: groups,
-      message: "Demo groups created or already exist",
-    });
-  } catch (error) {
-    console.error("Seed groups error:", error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
 
 // Protect other routes that require authentication
 router.use(protect);
