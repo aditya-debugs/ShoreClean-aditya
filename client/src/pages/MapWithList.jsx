@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from "react";
 import TrashMarkerMap from "./TrashMarkerMap";
 import TrashMarkerList from "./TrashMarkerList";
+import Navbar from "../components/Navbar";
+import BackButton from "../components/BackButton";
 
 function MapWithList() {
   const [markers, setMarkers] = useState([]);
@@ -10,7 +12,7 @@ function MapWithList() {
 
   // Fetch all markers on mount
   useEffect(() => {
-    fetch("http://localhost:8000/api/markers")
+    fetch(`${import.meta.env.VITE_API_URL || "http://localhost:8000/api"}/markers`)
       .then((res) => {
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);
@@ -107,6 +109,11 @@ function MapWithList() {
         fontFamily: "'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
       }}
     >
+      <Navbar />
+      <div style={{ paddingTop: "80px" }}>
+        <div style={{ padding: "16px 24px 0" }}>
+          <BackButton />
+        </div>
       {/* Header Section
       <div
         style={{
@@ -290,6 +297,7 @@ function MapWithList() {
         >
           💙 Making waves of change, one cleanup at a time 💙
         </p>
+      </div>
       </div>
     </div>
   );
