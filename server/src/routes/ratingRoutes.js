@@ -1,21 +1,20 @@
 // routes/ratingRoutes.js
 const express = require("express");
 const Rating = require("../models/Rating");
-const Event = require("../models/Event");
+const { protect } = require("../middlewares/authMiddleware");
 
 const router = express.Router();
 
-// ✅ Add or Update Rating
-router.post("/ratings", async (req, res) => {
+// Add or Update Rating (requires auth)
+router.post("/ratings", protect, async (req, res) => {
   try {
-    const { rating, eventId, userId } = req.body;
+    const { rating, eventId } = req.body;
+    const userId = req.user.id;
 
-    // Validate rating
     if (rating < 1 || rating > 5) {
       return res.status(400).json({ error: "Rating must be between 1 and 5" });
     }
 
-    // Find existing rating or create new one
     const existingRating = await Rating.findOne({ eventId, userId });
 
     if (existingRating) {
@@ -32,16 +31,13 @@ router.post("/ratings", async (req, res) => {
   }
 });
 
-// ✅ Get Event Average Rating
+// Get Event Average Rating (public)
 router.get("/ratings/event/:eventId/average", async (req, res) => {
   try {
     const { eventId } = req.params;
-    const { userId } = req.query;
 
-    // Get all ratings for the event
     const ratings = await Rating.find({ eventId });
 
-    // Calculate average rating
     const average =
       ratings.length > 0
         ? ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length
@@ -56,13 +52,12 @@ router.get("/ratings/event/:eventId/average", async (req, res) => {
   }
 });
 
-// ✅ Get User's Rating for an Event
-router.get("/ratings/event/:eventId/user", async (req, res) => {
+// Get User's Rating for an Event (requires auth)
+router.get("/ratings/event/:eventId/user", protect, async (req, res) => {
   try {
     const { eventId } = req.params;
-    const { userId } = req.query;
+    const userId = req.user.id;
 
-    // Get user's specific rating
     const userRating = await Rating.findOne({ eventId, userId });
 
     res.json({
@@ -73,10 +68,11 @@ router.get("/ratings/event/:eventId/user", async (req, res) => {
   }
 });
 
-// ✅ Delete Rating
-router.delete("/ratings", async (req, res) => {
+// Delete Rating (requires auth)
+router.delete("/ratings", protect, async (req, res) => {
   try {
-    const { eventId, userId } = req.body;
+    const { eventId } = req.body;
+    const userId = req.user.id;
 
     await Rating.findOneAndDelete({ eventId, userId });
     res.json({ message: "Rating deleted" });

@@ -8,7 +8,12 @@
     "dev": "nodemon index.js",
     "test": "echo \"No tests configured yet\" && exit 0"
   },
-  "keywords": ["cleanup", "environmental", "volunteer", "api"],
+  "keywords": [
+    "cleanup",
+    "environmental",
+    "volunteer",
+    "api"
+  ],
   "author": "ShoreClean Team",
   "license": "MIT",
   "dependencies": {
@@ -17,6 +22,7 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
+    "express-rate-limit": "^8.3.1",
     "jsonwebtoken": "^9.0.2",
     "jspdf": "^3.0.3",
     "mongoose": "^8.18.1",

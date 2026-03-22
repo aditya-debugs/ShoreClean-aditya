@@ -9,4 +9,7 @@ const certSchema = new mongoose.Schema({
   metadata: { type: Object } // extra info like role, score
 });
 
+// Prevent duplicate certificates for the same user+event
+certSchema.index({ user: 1, event: 1 }, { unique: true });
+
 module.exports = mongoose.model('Certificate', certSchema);
