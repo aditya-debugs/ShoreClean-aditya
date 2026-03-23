@@ -1,11 +1,18 @@
 // server/src/controllers/donationController.js
 const Donation = require('../models/Donation');
-const Stripe = require('stripe');
-const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+const { getStripe } = require('../config/stripe');
 
 // Create donation (Stripe Checkout)
 const createDonation = async (req, res) => {
   try {
+    const stripe = getStripe();
+    if (!stripe) {
+      return res.status(503).json({
+        error: 'Payments are not configured',
+        details: 'Set STRIPE_SECRET_KEY in server environment',
+      });
+    }
+
     const { amount, name, email, event } = req.body;
 
     if (!amount || isNaN(amount) || Number(amount) <= 0) {
@@ -70,6 +77,14 @@ const listDonations = async (req, res) => {
 
 const getStripeReceipt = async (req, res) => {
   try {
+    const stripe = getStripe();
+    if (!stripe) {
+      return res.status(503).json({
+        error: 'Payments are not configured',
+        details: 'Set STRIPE_SECRET_KEY in server environment',
+      });
+    }
+
     const { session_id } = req.query;
     if (!session_id) {
       return res.status(400).json({ error: 'Session ID is required' });

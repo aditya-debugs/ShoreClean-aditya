@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Waves, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Linkedin, ChevronRight, Sparkles, Globe } from 'lucide-react';
 
 export default function Footer() {
@@ -11,7 +12,13 @@ export default function Footer() {
     { icon: Linkedin, color: 'hover:text-blue-700', name: 'linkedin' }
   ];
 
-  const quickLinks = ['About', 'Events', 'Volunteer', 'Impact', 'Contact'];
+  const quickLinks = [
+    { name: 'Home', path: '/' },
+    { name: 'Events', path: '/events' },
+    { name: 'Map', path: '/map' },
+    { name: 'Community Chat', path: '/chat' },
+    { name: 'Donations', path: '/donations' },
+  ];
 
   return (
     <footer className="bg-gradient-to-b from-slate-50 to-cyan-50 border-t border-cyan-100">
@@ -26,7 +33,7 @@ export default function Footer() {
               </span>
             </div>
             <p className="text-gray-600 mb-6 leading-relaxed max-w-md">
-              Transforming coastal cleanup initiatives through AI-powered coordination, 
+              Transforming coastal cleanup initiatives through AI-powered coordination,
               community engagement, and transparent impact tracking.
             </p>
             <div className="flex space-x-4">
@@ -39,7 +46,7 @@ export default function Footer() {
                 >
                   <Icon className="h-5 w-5" />
                   {hoveredIcon === name && (
-                    <div className="absolute -top-2 -right-2 w-4 h-4 bg-cyan-400 rounded-full animate-ping"></div>
+                    <div className="absolute -top-2 -right-2 w-4 h-4 bg-cyan-400 rounded-full animate-ping" />
                   )}
                 </button>
               ))}
@@ -53,12 +60,15 @@ export default function Footer() {
               Quick Links
             </h3>
             <ul className="space-y-2">
-              {quickLinks.map((link) => (
-                <li key={link}>
-                  <a href={`#${link.toLowerCase()}`} className="text-gray-600 hover:text-cyan-600 transition-colors duration-300 flex items-center group">
+              {quickLinks.map(({ name, path }) => (
+                <li key={name}>
+                  <Link
+                    to={path}
+                    className="text-gray-600 hover:text-cyan-600 transition-colors duration-300 flex items-center group"
+                  >
                     <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transform -translate-x-2 group-hover:translate-x-0 transition-all duration-300" />
-                    <span className="group-hover:translate-x-1 transition-transform duration-300">{link}</span>
-                  </a>
+                    <span className="group-hover:translate-x-1 transition-transform duration-300">{name}</span>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -90,7 +100,7 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="border-t border-cyan-200 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-gray-600 text-sm mb-4 md:mb-0">
-            © 2024 ShoreClean. Made with 💙 for cleaner oceans.
+            © 2025 ShoreClean. Made with 💙 for cleaner oceans.
           </p>
           <div className="flex items-center space-x-6 text-sm text-gray-600">
             <a href="#privacy" className="hover:text-cyan-600 transition-colors duration-300">Privacy Policy</a>
@@ -100,7 +110,4 @@ export default function Footer() {
       </div>
     </footer>
   );
-
-
 }
-

@@ -1,11 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const Stripe = require('stripe');
-const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+const { getStripe } = require('../config/stripe');
 const Donation = require('../models/Donation');
 
 router.post('/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
+    const stripe = getStripe();
+    if (!stripe) {
+      return res.status(503).send('Stripe is not configured');
+    }
+
     const sig = req.headers['stripe-signature'];
     const event = stripe.webhooks.constructEvent(
       req.body,

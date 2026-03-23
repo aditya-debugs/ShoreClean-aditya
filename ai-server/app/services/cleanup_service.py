@@ -1,79 +1,79 @@
-from google.cloud import vision
-from difflib import SequenceMatcher
+import os
+import base64
+import json
+import re
+from groq import Groq
 
-client = vision.ImageAnnotatorClient()
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-# Trash-related keywords for fuzzy matching
-TRASH_KEYWORDS = [
-    "trash", "garbage", "plastic bottle", "wrapper", "can", "paper", "rubbish", "bottle"
-]
 
-CONFIDENCE_THRESHOLD = 0.7  # Only count objects/labels above this confidence
+def encode_image(image_bytes: bytes) -> str:
+    return base64.b64encode(image_bytes).decode("utf-8")
 
-def keyword_match(text):
-    """Return True if text matches any trash keyword (fuzzy)."""
-    text = text.lower()
-    for kw in TRASH_KEYWORDS:
-        ratio = SequenceMatcher(None, kw, text).ratio()
-        if ratio > 0.7:  # Adjustable threshold
-            return True
-    return False
 
 async def analyze_cleanup(before_bytes: bytes, after_bytes: bytes):
-    def detect_objects_and_labels(image_bytes):
-        """Detect objects and labels with confidence from Google Vision API."""
-        image = vision.Image(content=image_bytes)
+    before_b64 = encode_image(before_bytes)
+    after_b64 = encode_image(after_bytes)
 
-        # Object localization
-        obj_response = client.object_localization(image=image)
-        obj_labels_conf = [
-            (obj.name.lower(), obj.score) for obj in obj_response.localized_object_annotations
-        ]
+    prompt = """You are an expert at analyzing beach/shore cleanup effectiveness.
+You are given two images:
+- Image 1: BEFORE cleaning
+- Image 2: AFTER cleaning
 
-        # Label detection
-        label_response = client.label_detection(image=image)
-        label_labels_conf = [
-            (label.description.lower(), label.score) for label in label_response.label_annotations
-        ]
+Analyze both images and respond ONLY with a valid JSON object (no markdown, no extra text) in this exact format:
+{
+  "cleaned": true or false,
+  "cleanliness_score": <integer 0-100>,
+  "explanation": "<one or two sentence summary of what changed>"
+}
 
-        # Combine all labels and confidence
-        all_labels_conf = list(set(obj_labels_conf + label_labels_conf))
-        return all_labels_conf
+Guidelines:
+- "cleaned" is true if the after image shows meaningful reduction in trash/debris
+- "cleanliness_score" is 0 if no improvement, 100 if completely clean, scaled in between
+- "explanation" should mention what trash was visible before and what changed after"""
 
-    # Get labels with confidence
-    before_labels_conf = detect_objects_and_labels(before_bytes)
-    after_labels_conf = detect_objects_and_labels(after_bytes)
-
-    # Count trash items using fuzzy matching + confidence threshold
-    before_trash = sum(
-        1 for label, conf in before_labels_conf if conf >= CONFIDENCE_THRESHOLD and keyword_match(label)
+    response = client.chat.completions.create(
+        model="meta-llama/llama-4-scout-17b-16e-instruct",
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{before_b64}"
+                        }
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{after_b64}"
+                        }
+                    },
+                ],
+            }
+        ],
+        max_tokens=300,
     )
-    after_trash = sum(
-        1 for label, conf in after_labels_conf if conf >= CONFIDENCE_THRESHOLD and keyword_match(label)
-    )
 
-    # Determine if area cleaned
-    cleaned = after_trash < before_trash
+    content = response.choices[0].message.content.strip()
 
-    # Weighted cleanliness score
-    if before_trash == 0:
-        cleanliness_score = 100 if cleaned else 0
-    else:
-        cleanliness_score = max(
-            0, min(100, int((before_trash - after_trash) / before_trash * 100))
-        )
-
-    # Detailed explanation
-    explanation = (
-        f"Before image had {before_trash} potential trash items, "
-        f"after image has {after_trash}. "
-        f"Area cleaned: {cleaned}. "
-        f"Objects detected before: {[label for label, conf in before_labels_conf if keyword_match(label)]}. "
-        f"Objects detected after: {[label for label, conf in after_labels_conf if keyword_match(label)]}."
-    )
+    try:
+        result = json.loads(content)
+    except json.JSONDecodeError:
+        match = re.search(r'\{.*\}', content, re.DOTALL)
+        if match:
+            result = json.loads(match.group())
+        else:
+            result = {
+                "cleaned": False,
+                "cleanliness_score": 0,
+                "explanation": content
+            }
 
     return {
-        "cleaned": cleaned,
-        "cleanliness_score": cleanliness_score,
-        "explanation": explanation
+        "cleaned": bool(result.get("cleaned", False)),
+        "cleanliness_score": int(result.get("cleanliness_score", 0)),
+        "explanation": str(result.get("explanation", "No explanation provided."))
     }

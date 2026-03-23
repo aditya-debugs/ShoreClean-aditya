@@ -13,7 +13,8 @@
     "install-all": "npm install && cd client && npm install && cd ../server/src && npm install && cd ../../ai-server && pip install -r requirements.txt",
     "dev:client": "cd client && npm run dev",
     "dev:server": "cd server/src && npm run dev",
-    "dev:ai": "cd ai-server && uvicorn app.main:app --reload",
+    "dev:ai": "cd ai-server && uvicorn app.main:app --reload --port 8001",
+    "dev:all": "concurrently \"npm run dev:server\" \"npm run dev:client\" \"npm run dev:ai\"",
     "build:client": "cd client && npm run build"
   },
   "dependencies": {
@@ -30,5 +31,8 @@
     "coastal",
     "beach",
     "shore"
-  ]
+  ],
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
 }

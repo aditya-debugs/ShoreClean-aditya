@@ -1,6 +1,7 @@
 // CommunityManagement.jsx - Component for organizers to create and manage communities
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
+import { API_ROOT } from "../utils/api";
 
 const CommunityManagement = ({ onClose, onCommunityCreated }) => {
   const { currentUser } = useAuth();
@@ -40,7 +41,7 @@ const CommunityManagement = ({ onClose, onCommunityCreated }) => {
 
   const loadMyCommunities = async () => {
     try {
-      const response = await fetch("/api/communities?my=true", {
+      const response = await fetch(`${API_ROOT}/communities?my=true`, {
         headers: {
           Authorization: `Bearer ${currentUser.token}`,
         },
@@ -110,7 +111,7 @@ const CommunityManagement = ({ onClose, onCommunityCreated }) => {
     setIsCreating(true);
 
     try {
-      const response = await fetch("/api/communities", {
+      const response = await fetch(`${API_ROOT}/communities`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

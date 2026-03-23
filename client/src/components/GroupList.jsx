@@ -92,7 +92,11 @@ const GroupList = ({
   // Check if user is member of group
   const isMember = (group) => {
     return (
-      group.members?.some((member) => member.userId === currentUser.id) ||
+      group.members?.some(
+        (member) =>
+          String(member.userId) ===
+          String(currentUser._id || currentUser.id)
+      ) ||
       group.settings?.isPublic
     );
   };

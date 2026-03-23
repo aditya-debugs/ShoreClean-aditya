@@ -6,6 +6,7 @@ const cookieParser = require("cookie-parser");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
+const rateLimit = require("express-rate-limit");
 const connectDB = require("./config/db");
 const { initializeSocketHandlers } = require("./utils/socketHandler");
 
@@ -28,19 +29,34 @@ const organizationRoutes = require("./routes/organizationRoutes");
 const app = express();
 const server = http.createServer(app);
 
+/** Allow browser clients from local dev (any localhost port) and CLIENT_URL in production */
+function allowCorsOrigin(origin) {
+  if (!origin) return true;
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) return true;
+  const client = process.env.CLIENT_URL;
+  if (client && origin === client) return true;
+  return false;
+}
+
+const socketCorsOrigins = (() => {
+  const out = new Set([
+    process.env.CLIENT_URL || "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:5175",
+    "http://localhost:5176",
+  ]);
+  for (let p = 5173; p <= 5210; p++) out.add(`http://localhost:${p}`);
+  return [...out].filter(Boolean);
+})();
+
 // This must be before the express.json() middleware for Stripe webhooks
 app.use("/api/webhooks", webhookRoutes);
 
 // Initialize Socket.io with CORS settings
 const io = new Server(server, {
   cors: {
-    origin: [
-      process.env.CLIENT_URL || "http://localhost:3000",
-      "http://localhost:5173",
-      "http://localhost:5174",
-      "http://localhost:5175",
-      "http://localhost:5176",
-    ],
+    origin: socketCorsOrigins,
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -53,25 +69,31 @@ connectDB();
 app.use(express.json());
 app.use(cookieParser());
 
-// CORS: allow client to send cookies to server
+// Rate limiting
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { message: "Too many requests, please try again later" } });
+const donationLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { message: "Too many donation requests, please try again later" } });
+
+// CORS: localhost (any port) + CLIENT_URL — avoids dev port mismatches
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:5174",
-      "http://localhost:5175",
-      "http://localhost:5176",
-      process.env.CLIENT_URL || "http://localhost:3000",
-    ],
+    origin(origin, callback) {
+      if (allowCorsOrigin(origin)) return callback(null, true);
+      callback(null, false);
+    },
     credentials: true,
   })
 );
 
+// Increase JSON body limit to 10mb to support base64-encoded images
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ limit: "10mb", extended: true }));
+app.use(cookieParser());
+
 // Mount routes
-app.use("/api/auth", authRoutes);
+app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/volunteers", volunteerRoutes);
-app.use("/api/donations", donationRoutes);
+app.use("/api/donations", donationLimiter, donationRoutes);
 app.use("/api/certificates", certificateRoutes);
 app.use("/api/registrations", registrationRoutes);
 app.use("/api/comments", commentRoutes);
@@ -93,6 +115,34 @@ app.get("/api/profile", protect, async (req, res) => {
   res.json({ message: "Protected profile", user: req.user });
 });
 
+// ─── One-time migration: clean up incorrectly named / extra default groups so
+//     the lazy-init recreates them with the org's name included.
+(async () => {
+  try {
+    const Group = require("./models/Group");
+
+    // Remove old extra types (Community Chat, Certificates & Info)
+    const extra = await Group.deleteMany({
+      type: { $in: ["general", "certificates"] },
+      eventId: null,
+    });
+
+    // Remove generic "Announcements" groups that were created without an org name
+    const generic = await Group.deleteMany({
+      type: "announcements",
+      name: "Announcements", // only the plain name — org-named ones (e.g. "Bhumik — Announcements") are kept
+      eventId: null,
+    });
+
+    const total = (extra.deletedCount || 0) + (generic.deletedCount || 0);
+    if (total > 0) {
+      console.log(`🧹 Migration: removed ${total} stale default group(s) — will be recreated with org name on next /chat visit`);
+    }
+  } catch (e) {
+    console.warn("Migration warning:", e.message);
+  }
+})();
+
 // Health check endpoint
 app.get("/api/health", (req, res) => {
   res.json({
@@ -105,6 +155,12 @@ app.get("/api/health", (req, res) => {
       database: true,
     },
   });
+});
+
+// Global error handler — must be last middleware
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err);
+  res.status(500).json({ message: "Internal server error" });
 });
 
 const PORT = process.env.PORT || 5000;

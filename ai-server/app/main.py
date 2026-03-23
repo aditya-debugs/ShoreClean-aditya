@@ -16,24 +16,26 @@ app = FastAPI(
     description="AI-powered cleanup management and flyer generation service"
 )
 
-# Allow CORS for frontend applications
+# Explicit origins + regex so any localhost / 127.0.0.1 dev port works
 origins = [
-    "http://localhost:5173",  # React dev server (Vite)
-    "http://localhost:3000",  # Alternative React port
-    "http://localhost:5174",  # Additional Vite ports
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:5174",
     "http://localhost:5175",
+    "http://localhost:5176",
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include cleanup routes only
-app.include_router(cleanup_routes.router, prefix="/cleanup", tags=["Cleanup"])
+# Include routes (cleanup_routes already has prefix="/cleanup" defined in the router)
+app.include_router(cleanup_routes.router)
 app.include_router(ai_routes.router, prefix="/ai", tags=["AI"])
 
 # MongoDB connection events

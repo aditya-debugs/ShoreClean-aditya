@@ -7,8 +7,9 @@ class ErrorBoundary extends React.Component {
   }
 
   static getDerivedStateFromError(error) {
-    // Update state so the next render will show the fallback UI
-    return { hasError: true };
+    // Update state so the next render will show the fallback UI.
+    // Store error here — errorInfo is only set in componentDidCatch (next commit).
+    return { hasError: true, error };
   }
 
   componentDidCatch(error, errorInfo) {
@@ -42,7 +43,7 @@ class ErrorBoundary extends React.Component {
                 <pre className="mt-2 text-sm overflow-auto">
                   {this.state.error && this.state.error.toString()}
                   <br />
-                  {this.state.errorInfo.componentStack}
+                  {this.state.errorInfo?.componentStack ?? ""}
                 </pre>
               </details>
             )}

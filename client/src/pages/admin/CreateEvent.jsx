@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import emailjs from "@emailjs/browser";
+import api, { API_ROOT, aiApiUrl } from "../../utils/api";
 
 const initialState = {
   title: "",
@@ -13,8 +14,6 @@ const initialState = {
   bannerUrl: "",
   tags: "",
 };
-
-const BACKEND_URL = "http://localhost:8001/ai"; // FastAPI AI server
 
 const CreateEvent = () => {
   const [form, setForm] = useState(initialState);
@@ -32,9 +31,9 @@ const CreateEvent = () => {
       setIsEdit(true);
       setEventId(editId);
       setLoading(true);
-      fetch(`/api/events/${editId}`)
-        .then((res) => res.json())
-        .then((data) => {
+      api.get(`/events/${editId}`)
+        .then((res) => {
+          const data = res.data;
           setForm({
             title: data.title || "",
             description: data.description || "",
@@ -91,52 +90,20 @@ const CreateEvent = () => {
           .filter(Boolean),
         capacity: form.capacity ? parseInt(form.capacity) : undefined,
       };
-      const token = localStorage.getItem("token");
-      let response;
+
       if (isEdit && eventId) {
-        response = await fetch(`/api/events/${eventId}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(eventData),
-        });
+        await api.put(`/events/${eventId}`, eventData);
       } else {
-        response = await fetch(`/api/events`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(eventData),
-        });
-      }
-      const result = await response.json();
-      if (!response.ok) {
-        if (result.details) {
-          // Show backend validation errors
-          setError(
-            Object.values(result.details)
-              .map((e) => e.message)
-              .join("; ")
-          );
-        } else {
-          setError(
-            result.message ||
-              (isEdit ? "Error updating event" : "Error creating event")
-          );
-        }
-        setLoading(false);
-        return;
-      }
-      // 🔹 Trigger email notification only for new events
-      if (!isEdit) {
+        await api.post("/events", eventData);
         await notifyUsers(eventData.title);
       }
+
       navigate("/events");
     } catch (err) {
-      setError(isEdit ? "Error updating event" : "Error creating event");
+      const msg = err.response?.data?.details
+        ? Object.values(err.response.data.details).map((e) => e.message).join("; ")
+        : err.response?.data?.message || (isEdit ? "Error updating event" : "Error creating event");
+      setError(msg);
       console.error(err);
     } finally {
       setLoading(false);
@@ -147,7 +114,7 @@ const CreateEvent = () => {
   const notifyUsers = async (eventQuery) => {
     try {
       // 1️⃣ Generate description
-      const descRes = await fetch(`${BACKEND_URL}/description`, {
+      const descRes = await fetch(aiApiUrl("/ai/description"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ event_query: eventQuery }),
@@ -156,7 +123,7 @@ const CreateEvent = () => {
       const description = descData.description;
 
       // 2️⃣ Generate flyer
-      const flyerRes = await fetch(`${BACKEND_URL}/flyer`, {
+      const flyerRes = await fetch(aiApiUrl("/ai/flyer"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ event_query: eventQuery }),
@@ -164,19 +131,35 @@ const CreateEvent = () => {
       const flyerData = await flyerRes.json();
       const flyerUrl = flyerData.flyer_url || flyerData.image_path;
 
-      // 3️⃣ Send Email via EmailJS
-      const templateParams = {
-        to_email: "vedgawali@gmail.com", // replace with actual recipient
-        event_description: description,
-        flyer_url: flyerUrl,
-      };
+      // 3️⃣ Send Email via EmailJS to all registered volunteers
+      let volunteerEmails = [];
+      try {
+        const token = localStorage.getItem("token");
+        const volRes = await fetch(`${API_ROOT}/volunteers`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (volRes.ok) {
+          const volData = await volRes.json();
+          volunteerEmails = (volData || []).map((v) => v.email).filter(Boolean);
+        }
+      } catch (_) {}
 
-      await emailjs.send(
-        import.meta.env.VITE_EMAILJS_SERVICE_ID,
-        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-        templateParams,
-        import.meta.env.VITE_EMAILJS_PUBLIC_KEY
-      );
+      const recipients = volunteerEmails.length > 0 ? volunteerEmails : [import.meta.env.VITE_ADMIN_EMAIL || "admin@shoreclean.org"];
+
+      for (const email of recipients.slice(0, 10)) {
+        try {
+          await emailjs.send(
+            import.meta.env.VITE_EMAILJS_SERVICE_ID,
+            import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+            {
+              to_email: email,
+              event_description: description,
+              flyer_url: flyerUrl,
+            },
+            import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+          );
+        } catch (_) {}
+      }
 
       console.log("Notification email sent successfully ✅");
     } catch (err) {

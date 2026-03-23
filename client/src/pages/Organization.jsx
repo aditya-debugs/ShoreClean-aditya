@@ -35,6 +35,8 @@ const Organization = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [joining, setJoining] = useState(false);
+  const [joinedMsg, setJoinedMsg] = useState("");
 
   useEffect(() => {
     fetchOrganization();
@@ -80,8 +82,38 @@ const Organization = () => {
     }
   };
 
-  const handleJoinCommunity = () => {
-    navigate("/chat");
+  const handleJoinCommunity = async () => {
+    if (!currentUser) { navigate("/login"); return; }
+    setJoining(true);
+    setJoinedMsg("");
+    try {
+      // Fetch this org's community groups (non-event type)
+      const res = await api.get(`/groups/${id}`);
+      const groups = res.data?.data ?? [];
+      const communityGroups = groups.filter((g) => g.type !== "event");
+
+      if (communityGroups.length === 0) {
+        setJoinedMsg("No community groups available for this organization yet.");
+        setJoining(false);
+        return;
+      }
+
+      // Join all community/announcement groups
+      for (const group of communityGroups) {
+        try {
+          await api.post(`/groups/${group._id}/join`);
+        } catch (_) {
+          // Already a member — that's fine
+        }
+      }
+
+      setJoinedMsg("Joined! Taking you to the chat…");
+      setTimeout(() => navigate("/chat"), 1000);
+    } catch (err) {
+      setJoinedMsg("Failed to join community. Please try again.");
+    } finally {
+      setJoining(false);
+    }
   };
 
   const handleEditProfile = () => {
@@ -226,15 +258,23 @@ const Organization = () => {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex space-x-3">
+                    <div className="flex flex-col items-end gap-2">
                       {isVolunteer(currentUser) && !isViewingOwnProfile && (
-                        <button
-                          onClick={handleJoinCommunity}
-                          className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
-                        >
-                          <MessageCircle className="h-4 w-4 mr-2" />
-                          Join Community
-                        </button>
+                        <>
+                          <button
+                            onClick={handleJoinCommunity}
+                            disabled={joining}
+                            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+                          >
+                            <MessageCircle className="h-4 w-4 mr-2" />
+                            {joining ? "Joining…" : "Join Community"}
+                          </button>
+                          {joinedMsg && (
+                            <p className={`text-sm font-medium ${joinedMsg.startsWith("Joined") ? "text-green-600" : "text-red-500"}`}>
+                              {joinedMsg}
+                            </p>
+                          )}
+                        </>
                       )}
 
                       {canEdit && (
@@ -247,6 +287,7 @@ const Organization = () => {
                         </button>
                       )}
                     </div>
+
                   </div>
                 </div>
               </div>

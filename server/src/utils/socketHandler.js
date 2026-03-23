@@ -1,6 +1,7 @@
 // socketHandler.js - WebSocket event handlers for group-based real-time chat
 const { saveMessage, getGroupMessages } = require('../controllers/chatController');
 const Group = require('../models/Group');
+const jwt = require('jsonwebtoken');
 
 // Store connected users per room (now group-based)
 const activeRooms = new Map();
@@ -59,10 +60,33 @@ const initializeSocketHandlers = (io) => {
     // Handle user joining a group room
     socket.on('join_room', async (data) => {
       try {
-        const { orgId, groupId, userId, username } = data;
-        
-        if (!orgId || !groupId || !userId || !username) {
-          socket.emit('error', { message: 'Missing required parameters: orgId, groupId, userId, username' });
+        const { orgId, groupId } = data;
+
+        // Verify JWT from socket handshake auth
+        const token = socket.handshake.auth?.token;
+        let verifiedUserId, verifiedUsername;
+        if (token) {
+          try {
+            const User = require('../models/User');
+            const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+            verifiedUserId = decoded.userId;
+            const user = await User.findById(verifiedUserId).select('name');
+            verifiedUsername = user ? user.name : data.username || 'Unknown';
+          } catch {
+            socket.emit('error', { message: 'Invalid authentication token' });
+            return;
+          }
+        } else {
+          // Fallback: accept from data but warn (legacy support)
+          verifiedUserId = data.userId;
+          verifiedUsername = data.username || 'Unknown';
+        }
+
+        const userId = verifiedUserId;
+        const username = verifiedUsername;
+
+        if (!orgId || !groupId || !userId) {
+          socket.emit('error', { message: 'Missing required parameters: orgId, groupId' });
           return;
         }
 

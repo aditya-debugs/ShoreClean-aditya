@@ -13,9 +13,10 @@ import {
   QrCode,
   Download,
   CheckCircle,
-   Star,
+  Star,
   Heart,
   Trash2,
+  MessageCircle,
 } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -25,7 +26,8 @@ import Typography from "@mui/material/Typography";
 import QRCode from "../components/QRCode";
 import Comments from "../components/Comments";
 import StarRating from "../components/StarRating";
-import {
+import api, {
+  API_ROOT,
   getEventById,
   updateEvent,
   deleteEvent,
@@ -37,7 +39,6 @@ import {
 } from "../utils/api";
 import { useAuth } from "../context/AuthContext";
 import { canEditEvent, canRSVPToEvents, isVolunteer } from "../utils/roleUtils";
-import api from "../utils/api";
 
 const EventDetails = () => {
   const { id } = useParams();
@@ -85,7 +86,7 @@ const EventDetails = () => {
     fetchEventData();
 
     // Fetch comments from MongoDB
-    fetch(`/api/comments/${id}`)
+    fetch(`${API_ROOT}/comments/${id}`)
       .then((res) => res.json())
       .then((data) => setComments(data))
       .catch(() => setComments([]));
@@ -151,7 +152,6 @@ const EventDetails = () => {
       const result = await registerForEvent(event._id);
       setRegistration(result.registration);
       setShowQR(true);
-      alert("Successfully registered for the event! Your QR code has been generated.");
     } catch (error) {
       console.error("Registration error:", error);
       const message = error.response?.data?.message || "Could not register for event. Please try again.";
@@ -635,27 +635,51 @@ const EventDetails = () => {
                           
                           {/* QR Code Display */}
                           {showQR && registration.qrCode && (
-                            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
-                              <h4 className="text-lg font-medium text-gray-900 mb-4">Your Event QR Code</h4>
-                              <div className="flex justify-center mb-4" id="qr-code">
-                                <QRCode 
-                                  value={registration.qrCode} 
-                                  size={200}
-                                  level="M"
-                                  includeMargin={true}
-                                />
+                            <>
+                              <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+                                <h4 className="text-lg font-medium text-gray-900 mb-4">Your Event QR Code</h4>
+                                <div className="flex justify-center mb-4" id="qr-code">
+                                  <QRCode 
+                                    value={registration.qrCode} 
+                                    size={200}
+                                    level="M"
+                                    includeMargin={true}
+                                  />
+                                </div>
+                                <p className="text-sm text-gray-600 mb-4">
+                                  Present this QR code to event organizers for check-in and check-out.
+                                </p>
+                                <button
+                                  onClick={downloadQR}
+                                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium mx-auto"
+                                >
+                                  <Download className="h-4 w-4" />
+                                  Download QR Code
+                                </button>
                               </div>
-                              <p className="text-sm text-gray-600 mb-4">
-                                Present this QR code to event organizers for check-in and check-out.
-                              </p>
-                              <button
-                                onClick={downloadQR}
-                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium mx-auto"
+
+                              {/* Event Chat Group Prompt */}
+                              <Link
+                                to="/chat"
+                                className="mt-4 flex items-center gap-4 p-4 bg-gradient-to-r from-cyan-50 to-teal-50 border border-cyan-200 rounded-xl hover:from-cyan-100 hover:to-teal-100 hover:border-cyan-300 transition-all duration-200 group"
                               >
-                                <Download className="h-4 w-4" />
-                                Download QR Code
-                              </button>
-                            </div>
+                                <div className="w-11 h-11 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-full flex items-center justify-center flex-shrink-0 shadow-md group-hover:scale-105 transition-transform duration-200">
+                                  <MessageCircle className="w-5 h-5 text-white" />
+                                </div>
+                                <div className="flex-1 text-left">
+                                  <p className="text-sm font-bold text-gray-800">
+                                    You've been added to the event chat! 🎉
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-0.5">
+                                    Join the group to get updates, coordinate with volunteers, and stay informed about{" "}
+                                    <span className="font-medium text-cyan-700">{event?.title}</span>.
+                                  </p>
+                                </div>
+                                <div className="text-cyan-500 group-hover:translate-x-1 transition-transform duration-200 flex-shrink-0">
+                                  →
+                                </div>
+                              </Link>
+                            </>
                           )}
                         </div>
                       ) : (

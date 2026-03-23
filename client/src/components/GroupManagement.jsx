@@ -66,7 +66,7 @@ const GroupManagement = ({ orgId, currentUser, onClose }) => {
         await groupsAPI.createGroup({
           ...formData,
           orgId,
-          createdBy: currentUser.id,
+          createdBy: currentUser._id || currentUser.id,
         });
       }
 

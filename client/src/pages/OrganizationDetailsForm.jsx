@@ -8,7 +8,6 @@ import {
   Users,
   FileText,
   Calendar,
-  Mail,
   Save,
   Loader,
   CheckCircle,
@@ -43,6 +42,26 @@ const OrganizationDetailsForm = () => {
     specializations: "",
   });
 
+  const str = (v) => (v == null || v === undefined ? "" : String(v));
+  const mapOrgToForm = (org) => ({
+    organizationName: str(org.organizationName),
+    description: str(org.description),
+    address: str(org.address),
+    city: str(org.city),
+    state: str(org.state),
+    zipCode: str(org.zipCode),
+    country: str(org.country),
+    phone: str(org.phone),
+    website: str(org.website),
+    foundedYear:
+      org.foundedYear != null && org.foundedYear !== ""
+        ? String(org.foundedYear)
+        : "",
+    teamSize: str(org.teamSize),
+    mission: str(org.mission),
+    specializations: str(org.specializations),
+  });
+
   // Redirect if user is not an organizer
   useEffect(() => {
     if (currentUser && !isOrganizer(currentUser)) {
@@ -61,7 +80,7 @@ const OrganizationDetailsForm = () => {
           `/organizations/profile/${currentUser._id}`
         );
         if (response.data) {
-          setFormData(response.data);
+          setFormData(mapOrgToForm(response.data));
         }
       } catch (error) {
         // If no profile exists yet, that's fine - user is filling it for first time

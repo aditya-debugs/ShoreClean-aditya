@@ -66,29 +66,47 @@ export const getUserRoleDisplayName = (user) => {
 export const getNavigationItems = (user) => {
   if (!user) {
     return [
+      { name: "Home", path: "/" },
       { name: "Events", path: "/events" },
-      { name: "Maps", path: "/map" },
-      { name: "Testimonials", onClick: "scrollToTestimonials" },
+      { name: "Map", path: "/map" },
     ];
   }
 
   if (isVolunteer(user)) {
     return [
+      { name: "Home", path: "/" },
       { name: "Events", path: "/events" },
       { name: "Maps", path: "/map" },
       { name: "Certificates", path: "/volunteer/certificates" },
       { name: "Testimonials", onClick: "scrollToTestimonials" },
       { name: "Donation", path: "/donations", isCtaButton: true },
+      { name: "My Events", path: "/volunteer/my-events" },
+      { name: "Community Chat", path: "/chat" },
+      { name: "Donate", path: "/donations" },
     ];
   }
 
   if (isOrganizer(user)) {
     return [
+      { name: "Home", path: "/" },
       { name: "Events", path: "/events" },
       { name: "Maps", path: "/map" },
       { name: "Certificates", path: "/certificates" },
       { name: "Testimonials", onClick: "scrollToTestimonials" },
       { name: "Community Chat", path: "/chat", isCtaButton: true },
+      { name: "My Events", path: `/events?organizer=${user._id}` },
+      { name: "Community Chat", path: "/chat" },
+      { name: "Donations", path: "/donations" },
+    ];
+  }
+
+  // Admin navigation
+  if (isAdmin(user)) {
+    return [
+      { name: "Events", path: "/events" },
+      { name: "Maps", path: "/map" },
+      { name: "Dashboard", path: "/admin/dashboard" },
+      { name: "Volunteers", path: "/admin/volunteers" },
     ];
   }
 

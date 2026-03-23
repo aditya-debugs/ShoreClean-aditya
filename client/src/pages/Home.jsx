@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { Link, useLocation } from "react-router-dom";
 import {
   Calendar,
@@ -15,7 +16,6 @@ import {
   MapPin,
   Clock,
   ArrowRight,
-  Star,
   Loader,
   Quote,
   LogIn,
@@ -26,13 +26,13 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { getEvents } from "../utils/api";
 import { canCreateEvents, isVolunteer, isOrganizer } from "../utils/roleUtils";
+import TestimonialsSection from "../components/ui/TestimonialsSection";
 
 const Home = () => {
   const [quotes, setQuotes] = useState([]);
   const [carouselSlides, setCarouselSlides] = useState([]);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
-  const [testimonials, setTestimonials] = useState([]);
   const [features, setFeatures] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -82,36 +82,6 @@ const Home = () => {
         bgImage:
           "https://images.pexels.com/photos/13178207/pexels-photo-13178207.jpeg",
         quoteIndex: 2,
-      },
-    ]);
-    // Testimonials
-    setTestimonials([
-      {
-        id: 1,
-        name: "Priya Sharma",
-        role: "Environmental Activist",
-        image:
-          "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80",
-        text: "ShoreClean has revolutionized how we organize cleanup drives. The AI-powered coordination and real-time tracking have increased our volunteer participation by 300%.",
-        rating: 5,
-      },
-      {
-        id: 2,
-        name: "Arjun Patel",
-        role: "Volunteer Coordinator",
-        image:
-          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80",
-        text: "The gamification features keep volunteers engaged and motivated. Our regular participants have grown from 20 to over 200 in just six months!",
-        rating: 5,
-      },
-      {
-        id: 3,
-        name: "Dr. Meera Krishnan",
-        role: "Marine Biologist",
-        image:
-          "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=688&q=80",
-        text: "The impact tracking and analytics help us measure our environmental progress scientifically. It's incredibly valuable for our research and reporting.",
-        rating: 5,
       },
     ]);
     // Features
@@ -173,7 +143,7 @@ const Home = () => {
         // For organizers, only show their own events
         const filters = { limit: eventLimit };
         if (isOrganizer(currentUser)) {
-          filters.organizer = currentUser.id;
+          filters.organizer = currentUser._id || currentUser.id;
         }
 
         const data = await getEvents(filters);
@@ -189,11 +159,19 @@ const Home = () => {
     fetchEvents();
   }, [currentUser]); // Add currentUser as dependency
 
+  // Preload hero images so opacity crossfades don’t hitch on decode
+  useEffect(() => {
+    carouselSlides.forEach((slide) => {
+      const img = new Image();
+      img.src = slide.bgImage;
+    });
+  }, [carouselSlides]);
+
   useEffect(() => {
     if (carouselSlides.length > 0) {
       const interval = setInterval(() => {
         setCurrentSlide((prev) => (prev + 1) % carouselSlides.length);
-      }, 6000);
+      }, 8500);
       return () => clearInterval(interval);
     }
   }, [carouselSlides]);
@@ -245,20 +223,27 @@ const Home = () => {
 
       {/* Hero Section with Background Carousel */}
       <section className="pt-32 pb-20 px-6 relative overflow-hidden min-h-screen flex items-center">
-        {/* Background Carousel */}
+        {/* Background Carousel — opacity-only crossfade (GPU-friendly, no scale on huge layers) */}
         <div className="absolute inset-0 z-0">
           {carouselSlides.map((slide, index) => (
-            <div
-              key={index}
-              className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ease-in-out ${
-                index === currentSlide
-                  ? "opacity-100 pointer-events-auto"
-                  : "opacity-0 pointer-events-none"
-              }`}
+            <motion.div
+              key={slide.bgImage}
+              className="absolute inset-0 bg-cover bg-center will-change-[opacity] transform-gpu backface-hidden"
               style={{
                 backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(${slide.bgImage})`,
+                backgroundPosition: "center",
               }}
-            ></div>
+              initial={false}
+              animate={{
+                opacity: index === currentSlide ? 1 : 0,
+              }}
+              transition={{
+                opacity: {
+                  duration: 2.2,
+                  ease: [0.45, 0, 0.55, 1],
+                },
+              }}
+            />
           ))}
         </div>
         <div className="max-w-6xl mx-auto relative z-10 text-center text-white">
@@ -294,26 +279,37 @@ const Home = () => {
             </>
           )}
 
-          {/* Quotes Section */}
-          <div className="max-w-3xl mx-auto mb-12">
-            {quotes.map((quote, index) => (
-              <div
-                key={index}
-                className={`transition-all duration-1000 text-center ${
-                  carouselSlides[currentSlide]?.quoteIndex === index
-                    ? "opacity-100 translate-y-0"
-                    : "opacity-0 translate-y-4 absolute"
-                }`}
-              >
-                <div className="border-5 border-cyan-300/70 rounded-xl bg-black/30 p-6 shadow-lg backdrop-blur-md inline-block transition-all duration-700">
-                  <Quote className="h-8 w-8 mx-auto mb-4 text-cyan-200 opacity-80" />
-                  <p className="text-xl italic mb-4 text-white/95">
-                    "{quote.text}"
-                  </p>
-                  <p className="text-cyan-200 font-medium">— {quote.author}</p>
-                </div>
-              </div>
-            ))}
+          {/* Quotes — overlap crossfade (sync): no blur (blur animates poorly); transform + opacity only */}
+          <div className="w-full max-w-3xl mx-auto mb-12 min-h-[220px] relative">
+            <div className="relative min-h-[200px] w-full">
+              <AnimatePresence mode="sync" initial={false}>
+                {carouselSlides.length > 0 &&
+                  quotes[carouselSlides[currentSlide]?.quoteIndex] && (
+                    <motion.div
+                      key={currentSlide}
+                      className="absolute inset-0 flex items-center justify-center px-2 will-change-[opacity,transform] transform-gpu"
+                      initial={{ opacity: 0, y: 16 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{
+                        opacity: { duration: 1.15, ease: [0.45, 0, 0.55, 1] },
+                        y: { duration: 1.15, ease: [0.45, 0, 0.55, 1] },
+                      }}
+                    >
+                      <div className="border-5 border-cyan-300/70 rounded-xl bg-black/30 p-6 shadow-lg backdrop-blur-md inline-block max-w-full text-center">
+                        <Quote className="h-8 w-8 mx-auto mb-4 text-cyan-200 opacity-80" />
+                        <p className="text-xl italic mb-4 text-white/95">
+                          "{quotes[carouselSlides[currentSlide].quoteIndex].text}"
+                        </p>
+                        <p className="text-cyan-200 font-medium">
+                          —{" "}
+                          {quotes[carouselSlides[currentSlide].quoteIndex].author}
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </section>
@@ -497,70 +493,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section id="testimonials" className="py-20 px-6 bg-white/80">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-800 mb-4">
-              What Our{" "}
-              <span className="bg-gradient-to-r from-cyan-500 to-blue-500 bg-clip-text text-transparent">
-                Community Says
-              </span>
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Hear from organizers and volunteers who are making a difference
-              with ShoreClean.
-            </p>
-          </div>
-          {testimonials.length > 0 ? (
-            <div className="grid md:grid-cols-3 gap-8">
-              {testimonials.map((testimonial) => (
-                <div
-                  key={testimonial.id}
-                  className="bg-white p-8 rounded-xl shadow-sm transition-all duration-300 border border-gray-100 transform hover:scale-105 hover:shadow-xl hover:border-cyan-300"
-                >
-                  <div className="flex items-center mb-6">
-                    <img
-                      src={testimonial.image}
-                      alt={testimonial.name}
-                      className="w-16 h-16 rounded-full object-cover mr-4"
-                    />
-                    <div>
-                      <h4 className="font-semibold text-gray-800">
-                        {testimonial.name}
-                      </h4>
-                      <p className="text-cyan-500 text-sm">
-                        {testimonial.role}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center mb-4">
-                    {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className="h-5 w-5 text-amber-400 fill-current"
-                      />
-                    ))}
-                  </div>
-                  <p className="text-gray-600 mb-6 leading-relaxed italic">
-                    "{testimonial.text}"
-                  </p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 bg-white/90 rounded-xl border border-gray-200/50">
-              <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-medium text-gray-600 mb-2">
-                No testimonials yet
-              </h3>
-              <p className="text-gray-500">
-                Be the first to share your ShoreClean experience!
-              </p>
-            </div>
-          )}
-        </div>
-      </section>
+      <TestimonialsSection />
 
       {/* Donation CTA Section - Only visible to volunteers */}
       {isVolunteer(currentUser) && (

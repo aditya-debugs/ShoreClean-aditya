@@ -18,7 +18,7 @@ const createCommunity = async (req, res) => {
     } = req.body;
 
     // Check if user has organizer role
-    if (req.user.role !== "organizer" && req.user.role !== "admin") {
+    if (req.user.role !== "org" && req.user.role !== "admin") {
       return res.status(403).json({
         success: false,
         message: "Only organizers can create communities",
@@ -43,10 +43,10 @@ const createCommunity = async (req, res) => {
       location,
       avatar,
       banner,
-      createdBy: req.user._id,
+      createdBy: req.user.id,
       organizers: [
         {
-          userId: req.user._id,
+          userId: req.user.id,
           role: "admin",
         },
       ],
@@ -175,7 +175,7 @@ const joinCommunity = async (req, res) => {
 
     // Check if user is already a member
     const existingMember = community.members.find(
-      (member) => member.userId.toString() === req.user._id.toString()
+      (member) => member.userId.toString() === req.user.id.toString()
     );
 
     if (existingMember) {
@@ -187,7 +187,7 @@ const joinCommunity = async (req, res) => {
 
     // Add user as member
     community.members.push({
-      userId: req.user._id,
+      userId: req.user.id,
       joinedAt: new Date(),
       status: "active",
     });
@@ -226,7 +226,7 @@ const leaveCommunity = async (req, res) => {
 
     // Remove user from members
     community.members = community.members.filter(
-      (member) => member.userId.toString() !== req.user._id.toString()
+      (member) => member.userId.toString() !== req.user.id.toString()
     );
 
     // Update stats
@@ -264,7 +264,7 @@ const updateCommunity = async (req, res) => {
 
     // Check if user is an organizer
     const isOrganizer = community.organizers.some(
-      (org) => org.userId.toString() === req.user._id.toString()
+      (org) => org.userId.toString() === req.user.id.toString()
     );
 
     if (!isOrganizer && req.user.role !== "admin") {

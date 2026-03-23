@@ -1,16 +1,16 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   Calendar,
   Users,
   MapPin,
   Loader,
-  ChevronLeft,
-  ChevronRight,
-  ArrowLeft,
   Trash2,
   Edit,
+  Plus,
+  ChevronDown,
 } from "lucide-react";
+import BackButton from "../components/BackButton";
 import {
   getEvents,
   rsvpForEvent,
@@ -23,12 +23,14 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import "../index.css";
 
+const EVENTS_PER_PAGE = 6;
+
 const Events = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
-  const [limit] = useState(6);
-  const [totalPages, setTotalPages] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState("");
   const { currentUser } = useAuth();
   const navigate = useNavigate();
@@ -38,34 +40,55 @@ const Events = () => {
   const searchParams = new URLSearchParams(location.search);
   const organizerIdFromUrl = searchParams.get("organizer");
 
+  const buildParams = useCallback(
+    (pageNum) => {
+      const params = { page: pageNum, limit: EVENTS_PER_PAGE };
+      if (organizerIdFromUrl) {
+        params.organizer = organizerIdFromUrl;
+      } else if (isOrganizer(currentUser)) {
+        params.organizer = currentUser._id;
+      }
+      return params;
+    },
+    [organizerIdFromUrl, currentUser]
+  );
+
+  // Initial load — reset list when filters change
   useEffect(() => {
     const fetchEvents = async () => {
       setLoading(true);
       setError("");
+      setPage(1);
       try {
-        const params = { page, limit };
-
-        // If there's an organizer ID in the URL, filter by that organizer
-        if (organizerIdFromUrl) {
-          params.organizer = organizerIdFromUrl;
-        } else if (isOrganizer(currentUser)) {
-          // If user is an organizer and no specific organizer in URL, show their events
-          params.organizer = currentUser._id;
-        }
-        // Volunteers see all events when no organizer filter is specified
-
-        const data = await getEvents(params);
-        setEvents(data.events || []);
-        setTotalPages(data.totalPages || 1);
+        const data = await getEvents(buildParams(1));
+        const fetched = data.events || [];
+        setEvents(fetched);
+        const pages = data.totalPages ?? (fetched.length === EVENTS_PER_PAGE ? 2 : 1);
+        setHasMore(pages > 1);
         setLoading(false);
       } catch (err) {
         setError("Could not load events. Please try again later.");
         setLoading(false);
       }
     };
-
     fetchEvents();
-  }, [page, limit, currentUser, organizerIdFromUrl]);
+  }, [currentUser, organizerIdFromUrl, buildParams]);
+
+  const handleLoadMore = async () => {
+    setLoadingMore(true);
+    try {
+      const nextPage = page + 1;
+      const data = await getEvents(buildParams(nextPage));
+      const fetched = data.events || [];
+      setEvents((prev) => [...prev, ...fetched]);
+      setPage(nextPage);
+      setHasMore(nextPage < (data.totalPages ?? (fetched.length === EVENTS_PER_PAGE ? nextPage + 1 : nextPage)));
+    } catch (err) {
+      console.error("Load more error:", err);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const handleRSVP = async (eventId, alreadyRSVPed) => {
     if (!currentUser) {
@@ -115,30 +138,40 @@ const Events = () => {
       <Navbar />
       <section className="pt-32 pb-12 px-6">
         <div className="max-w-6xl mx-auto">
-          <button
-            className="flex items-center gap-2 mb-8 px-4 py-2 bg-white border border-cyan-200 text-cyan-600 rounded-xl hover:bg-cyan-50 hover:border-cyan-300 transition-all duration-300 font-semibold cursor-pointer"
-            onClick={() => navigate("/")}
-          >
-            <ArrowLeft className="h-5 w-5" /> Go Back
-          </button>
+          <BackButton className="mb-8" />
 
-          <h1 className="text-4xl md:text-5xl font-bold text-center mb-8 text-gray-900">
-            {organizerIdFromUrl
-              ? "Organization"
-              : isOrganizer(currentUser)
-              ? "My"
-              : "Upcoming"}{" "}
-            <span className="bg-gradient-to-r from-cyan-500 to-blue-500 bg-clip-text text-transparent">
-              Events
-            </span>
-          </h1>
-          <p className="text-lg text-center text-gray-600 mb-12 max-w-2xl mx-auto">
-            {organizerIdFromUrl
-              ? "Explore all events organized by this organization and join their coastal clean-up initiatives."
-              : isOrganizer(currentUser)
-              ? "Manage your organization's coastal clean-up events and track their impact."
-              : "Discover and join coastal clean-up events near you. RSVP to secure your spot and make an impact!"}
-          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
+            <div className="flex-1 text-center">
+              <h1 className="text-4xl md:text-5xl font-bold text-gray-900">
+                {organizerIdFromUrl
+                  ? "Organization"
+                  : isOrganizer(currentUser)
+                  ? "My"
+                  : "Upcoming"}{" "}
+                <span className="bg-gradient-to-r from-cyan-500 to-blue-500 bg-clip-text text-transparent">
+                  Events
+                </span>
+              </h1>
+              <p className="text-lg text-gray-600 mt-3 max-w-2xl mx-auto">
+                {organizerIdFromUrl
+                  ? "Explore all events organized by this organization and join their coastal clean-up initiatives."
+                  : isOrganizer(currentUser)
+                  ? "Manage your organization's coastal clean-up events and track their impact."
+                  : "Discover and join coastal clean-up events near you. RSVP to secure your spot and make an impact!"}
+              </p>
+            </div>
+
+            {/* Create Event button — always visible for organizers */}
+            {canCreateEvents(currentUser) && !organizerIdFromUrl && (
+              <Link
+                to="/admin/create-event"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-cyan-600 text-white rounded-xl font-bold shadow-lg hover:bg-cyan-700 hover:scale-105 hover:shadow-xl transition-all duration-300 flex-shrink-0"
+              >
+                <Plus className="h-5 w-5" />
+                Create Event
+              </Link>
+            )}
+          </div>
 
           {loading && (
             <div className="flex justify-center items-center py-20">
@@ -268,24 +301,20 @@ const Events = () => {
             </div>
           )}
 
-          {!loading && !error && totalPages > 1 && (
-            <div className="flex justify-center items-center gap-2 mb-8">
+          {/* Load More button */}
+          {!loading && !error && hasMore && (
+            <div className="flex justify-center mb-8">
               <button
-                className="p-2 rounded-full bg-white border border-cyan-200 text-cyan-600 hover:bg-cyan-100 hover:border-cyan-300 hover:scale-105 hover:shadow-2xl transition-all duration-300 disabled:opacity-50 cursor-pointer"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="inline-flex items-center gap-2 px-8 py-3 bg-white border-2 border-cyan-300 text-cyan-700 rounded-2xl font-bold hover:bg-cyan-50 hover:border-cyan-400 hover:scale-105 transition-all duration-300 shadow-md disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
               >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-              <span className="px-4 py-2 font-semibold text-cyan-700">
-                Page {page} of {totalPages}
-              </span>
-              <button
-                className="p-2 rounded-full bg-white border border-cyan-200 text-cyan-600 hover:bg-cyan-100 hover:border-cyan-300 hover:scale-105 hover:shadow-2xl transition-all duration-300 disabled:opacity-50 cursor-pointer"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-              >
-                <ChevronRight className="h-5 w-5" />
+                {loadingMore ? (
+                  <Loader className="h-5 w-5 animate-spin" />
+                ) : (
+                  <ChevronDown className="h-5 w-5" />
+                )}
+                {loadingMore ? "Loading…" : "Load More Events"}
               </button>
             </div>
           )}

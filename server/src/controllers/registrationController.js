@@ -44,6 +44,23 @@ const registerForEvent = async (req, res) => {
 
     await registration.save();
 
+    // Auto-join the event's chat group (non-fatal if it fails)
+    try {
+      const Group = require("../models/Group");
+      const eventGroup = await Group.findOne({ eventId, type: "event", isActive: true });
+      if (eventGroup) {
+        const alreadyMember = eventGroup.members.some(
+          (m) => m.userId.toString() === userId.toString()
+        );
+        if (!alreadyMember) {
+          eventGroup.members.push({ userId, role: "member", joinedAt: new Date() });
+          await eventGroup.save();
+        }
+      }
+    } catch (groupErr) {
+      console.error("Failed to auto-join event chat group (non-fatal):", groupErr.message);
+    }
+
     // Populate the registration with user and event details
     const populatedRegistration = await Registration.findById(registration._id)
       .populate('user', 'name email')

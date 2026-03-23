@@ -43,11 +43,17 @@ const login = async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ message: 'Email and password required' });
 
-    const user = await User.findOne({ email });
-    if (!user) return res.status(401).json({ message: 'Invalid credentials' });
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      console.log(`[Login] No user found for email: ${email}`);
+      return res.status(401).json({ message: 'No account found with this email. Please register first.' });
+    }
 
     const isMatch = await user.matchPassword(password);
-    if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
+    if (!isMatch) {
+      console.log(`[Login] Wrong password for email: ${email}`);
+      return res.status(401).json({ message: 'Incorrect password. Please try again.' });
+    }
 
     const accessToken = createAccessToken({ userId: user._id, role: user.role });
     const refreshToken = createRefreshToken({ userId: user._id, role: user.role });
@@ -118,11 +124,10 @@ const updateProfile = async (req, res) => {
     const user = await User.findById(req.user.userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Only update allowed fields
-    const { name, email, role } = req.body;
+    // Only update allowed fields (role is NOT updatable via this endpoint)
+    const { name, email } = req.body;
     if (name) user.name = name;
     if (email) user.email = email;
-    if (role) user.role = role;
     await user.save();
     res.json({
       id: user._id,
@@ -137,4 +142,21 @@ const updateProfile = async (req, res) => {
   }
 };
 
-module.exports = { register, login, logout, refreshAccessToken, getProfile, updateProfile };
+// TEMPORARY DEV HELPERS — remove before production
+const debugUsers = async (req, res) => {
+  const users = await User.find({}).select('email role createdAt').lean();
+  res.json({ count: users.length, database: 'test', users });
+};
+
+// DEV ONLY: reset a user's password by email
+const devResetPassword = async (req, res) => {
+  const { email, newPassword } = req.body;
+  if (!email || !newPassword) return res.status(400).json({ message: 'email and newPassword required' });
+  const user = await User.findOne({ email: email.toLowerCase().trim() });
+  if (!user) return res.status(404).json({ message: 'User not found' });
+  user.password = newPassword; // pre-save hook will hash it
+  await user.save();
+  res.json({ message: `Password reset for ${email}`, role: user.role });
+};
+
+module.exports = { register, login, logout, refreshAccessToken, getProfile, updateProfile, debugUsers, devResetPassword };
