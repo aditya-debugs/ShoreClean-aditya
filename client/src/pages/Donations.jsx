@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import axios from "axios";
 import Navbar from "../components/Navbar";
 import api from "../utils/api";
 import BackButton from "../components/BackButton";
@@ -24,22 +23,11 @@ export default function Donations() {
 
     try {
       setLoading(true);
-      // Get the base URL from the api utility
-      const baseURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
-
-      // 1️⃣ Create donation entry in your backend DB
-      await api.post("/donations", {
+      const response = await api.post("/donations", {
         name: form.name,
         email: form.email,
         amount: Number(form.amount),
         currency: "INR",
-      });
-
-      // 2️⃣ Call Stripe server to start checkout session
-      const response = await axios.post(`${baseURL}/donations`, {
-        amount: Number(form.amount),
-        name: form.name,
-        email: form.email,
       });
 
       if (response.data?.url) {

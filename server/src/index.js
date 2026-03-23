@@ -29,19 +29,34 @@ const organizationRoutes = require("./routes/organizationRoutes");
 const app = express();
 const server = http.createServer(app);
 
+/** Allow browser clients from local dev (any localhost port) and CLIENT_URL in production */
+function allowCorsOrigin(origin) {
+  if (!origin) return true;
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) return true;
+  const client = process.env.CLIENT_URL;
+  if (client && origin === client) return true;
+  return false;
+}
+
+const socketCorsOrigins = (() => {
+  const out = new Set([
+    process.env.CLIENT_URL || "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:5175",
+    "http://localhost:5176",
+  ]);
+  for (let p = 5173; p <= 5210; p++) out.add(`http://localhost:${p}`);
+  return [...out].filter(Boolean);
+})();
+
 // This must be before the express.json() middleware for Stripe webhooks
 app.use("/api/webhooks", webhookRoutes);
 
 // Initialize Socket.io with CORS settings
 const io = new Server(server, {
   cors: {
-    origin: [
-      process.env.CLIENT_URL || "http://localhost:3000",
-      "http://localhost:5173",
-      "http://localhost:5174",
-      "http://localhost:5175",
-      "http://localhost:5176",
-    ],
+    origin: socketCorsOrigins,
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -58,16 +73,13 @@ app.use(cookieParser());
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { message: "Too many requests, please try again later" } });
 const donationLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { message: "Too many donation requests, please try again later" } });
 
-// CORS: allow client to send cookies to server
+// CORS: localhost (any port) + CLIENT_URL — avoids dev port mismatches
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:5174",
-      "http://localhost:5175",
-      "http://localhost:5176",
-      process.env.CLIENT_URL || "http://localhost:3000",
-    ],
+    origin(origin, callback) {
+      if (allowCorsOrigin(origin)) return callback(null, true);
+      callback(null, false);
+    },
     credentials: true,
   })
 );

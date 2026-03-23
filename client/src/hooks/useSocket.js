@@ -2,7 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:8000";
+// Match Express `PORT` (default 5000). Override with VITE_SOCKET_URL if needed.
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:5001";
 
 export const useSocket = (orgId, groupId = null, user = null) => {
   const [socket, setSocket] = useState(null);

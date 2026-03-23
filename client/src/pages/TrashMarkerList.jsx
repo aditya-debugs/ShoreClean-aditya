@@ -1,5 +1,6 @@
 // TrashMarkerList.jsx
 import React, { useState } from "react";
+import { aiApiUrl } from "../utils/api";
 
 const statusColor = {
   pending: "#e3f2fd",
@@ -95,7 +96,7 @@ function TrashMarkerList({
       formData.append("location", marker.address || "unknown");
       formData.append("user", "anonymous");
 
-      const res = await fetch("http://localhost:8001/cleanup/analyze", {
+      const res = await fetch(aiApiUrl("/cleanup/analyze"), {
         method: "POST",
         body: formData,
       });

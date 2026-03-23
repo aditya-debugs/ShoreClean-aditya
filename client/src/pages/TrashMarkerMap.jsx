@@ -8,6 +8,7 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { aiApiUrl } from "../utils/api";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 const blueIcon = new L.Icon({
@@ -501,7 +502,7 @@ function TrashMarkerMap({
       formData.append("location", fullMarker.address || "unknown");
       formData.append("user", currentUser?.name || "anonymous");
 
-      const res = await fetch("http://localhost:8001/cleanup/analyze", {
+      const res = await fetch(aiApiUrl("/cleanup/analyze"), {
         method: "POST",
         body: formData,
       });

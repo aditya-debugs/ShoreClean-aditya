@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import emailjs from "@emailjs/browser";
-import api from "../../utils/api";
+import api, { API_ROOT, aiApiUrl } from "../../utils/api";
 
 const initialState = {
   title: "",
@@ -14,8 +14,6 @@ const initialState = {
   bannerUrl: "",
   tags: "",
 };
-
-const BACKEND_URL = `${import.meta.env.VITE_AI_API_URL || "http://localhost:8001"}/ai`;
 
 const CreateEvent = () => {
   const [form, setForm] = useState(initialState);
@@ -116,7 +114,7 @@ const CreateEvent = () => {
   const notifyUsers = async (eventQuery) => {
     try {
       // 1️⃣ Generate description
-      const descRes = await fetch(`${BACKEND_URL}/description`, {
+      const descRes = await fetch(aiApiUrl("/ai/description"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ event_query: eventQuery }),
@@ -125,7 +123,7 @@ const CreateEvent = () => {
       const description = descData.description;
 
       // 2️⃣ Generate flyer
-      const flyerRes = await fetch(`${BACKEND_URL}/flyer`, {
+      const flyerRes = await fetch(aiApiUrl("/ai/flyer"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ event_query: eventQuery }),
@@ -134,11 +132,10 @@ const CreateEvent = () => {
       const flyerUrl = flyerData.flyer_url || flyerData.image_path;
 
       // 3️⃣ Send Email via EmailJS to all registered volunteers
-      const apiBase = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
       let volunteerEmails = [];
       try {
         const token = localStorage.getItem("token");
-        const volRes = await fetch(`${apiBase}/volunteers`, {
+        const volRes = await fetch(`${API_ROOT}/volunteers`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (volRes.ok) {

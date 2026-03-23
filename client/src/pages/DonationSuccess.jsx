@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { CheckCircle, Printer } from "lucide-react";
 import jsPDF from "jspdf";
 import Navbar from "../components/Navbar";
+import { API_ROOT } from "../utils/api";
 
 export default function DonationSuccess() {
   const navigate = useNavigate();
@@ -18,7 +19,8 @@ export default function DonationSuccess() {
     if (sessionId) {
       // Fetch receipt details from backend using session_id
       fetch(
-        `${import.meta.env.VITE_API_URL || "http://localhost:8000/api"}/donations/stripe-receipt?session_id=${sessionId}`
+        `${API_ROOT}/donations/stripe-receipt?session_id=${sessionId}`,
+        { credentials: "include" }
       )
         .then((res) => {
           if (!res.ok) {

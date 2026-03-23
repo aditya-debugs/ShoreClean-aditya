@@ -26,7 +26,8 @@ import Typography from "@mui/material/Typography";
 import QRCode from "../components/QRCode";
 import Comments from "../components/Comments";
 import StarRating from "../components/StarRating";
-import {
+import api, {
+  API_ROOT,
   getEventById,
   updateEvent,
   deleteEvent,
@@ -38,7 +39,6 @@ import {
 } from "../utils/api";
 import { useAuth } from "../context/AuthContext";
 import { canEditEvent, canRSVPToEvents, isVolunteer } from "../utils/roleUtils";
-import api from "../utils/api";
 
 const EventDetails = () => {
   const { id } = useParams();
@@ -86,7 +86,7 @@ const EventDetails = () => {
     fetchEventData();
 
     // Fetch comments from MongoDB
-    fetch(`/api/comments/${id}`)
+    fetch(`${API_ROOT}/comments/${id}`)
       .then((res) => res.json())
       .then((data) => setComments(data))
       .catch(() => setComments([]));

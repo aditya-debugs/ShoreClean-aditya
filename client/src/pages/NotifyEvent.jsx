@@ -1,14 +1,12 @@
 import React, { useState } from "react";
 import emailjs from "@emailjs/browser";
+import { aiApiUrl } from "../utils/api";
 
 const NotifyEvent = () => {
   const [eventQuery, setEventQuery] = useState("");
   const [description, setDescription] = useState("");
   const [flyerUrl, setFlyerUrl] = useState("");
   const [status, setStatus] = useState("");
-
-  // FastAPI AI server URL
-  const BACKEND_URL = "http://localhost:8001/ai";
 
   // 1️⃣ Generate description from backend
   const fetchDescription = async () => {
@@ -18,7 +16,7 @@ const NotifyEvent = () => {
     }
     setStatus("Generating description...");
     try {
-      const res = await fetch(`${BACKEND_URL}/description`, {
+      const res = await fetch(aiApiUrl("/ai/description"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ event_query: eventQuery }),
@@ -44,7 +42,7 @@ const NotifyEvent = () => {
     }
     setStatus("Generating flyer...");
     try {
-      const res = await fetch(`${BACKEND_URL}/flyer`, {
+      const res = await fetch(aiApiUrl("/ai/flyer"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ event_query: eventQuery }),

@@ -4,9 +4,23 @@
  */
 import axios from "axios";
 
+// Same-origin `/api` in dev (Vite proxy → Express). Set VITE_API_URL for production or a custom backend port.
+export const API_ROOT = (import.meta.env.VITE_API_URL || "/api").replace(/\/$/, "");
+
+/**
+ * FastAPI AI server (uvicorn). Leave VITE_AI_API_URL unset in dev to use same-origin
+ * `/ai` and `/cleanup` paths (Vite proxies to port 8001 — see vite.config.js).
+ * In production, set VITE_AI_API_URL to the full origin (e.g. https://ai.example.com).
+ */
+export function aiApiUrl(path) {
+  const p = path.startsWith("/") ? path : `/${path}`;
+  const base = (import.meta.env.VITE_AI_API_URL || "").replace(/\/$/, "");
+  return base ? `${base}${p}` : p;
+}
+
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000/api",
+  baseURL: API_ROOT,
   headers: {
     "Content-Type": "application/json",
   },

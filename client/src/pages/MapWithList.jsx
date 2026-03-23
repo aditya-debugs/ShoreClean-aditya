@@ -5,6 +5,7 @@ import TrashMarkerList from "./TrashMarkerList";
 import { useAuth } from "../context/AuthContext";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { API_ROOT } from "../utils/api";
 
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
@@ -21,7 +22,7 @@ function MapWithList() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL || "http://localhost:8000/api"}/markers`)
+    fetch(`${API_ROOT}/markers`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         return res.json();
@@ -39,7 +40,7 @@ function MapWithList() {
 
   // Fetch a single marker with full image data (lazy-loaded on demand)
   const fetchMarkerById = async (id) => {
-    const res = await fetch(`http://localhost:8000/api/markers/${id}`);
+    const res = await fetch(`${API_ROOT}/markers/${id}`);
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     return res.json();
   };
@@ -48,7 +49,7 @@ function MapWithList() {
   const addMarker = async (lat, lng, { name, description, beforeFile, creatorName }) => {
     try {
       const before_img = await fileToBase64(beforeFile);
-      const res = await fetch("http://localhost:8000/api/markers", {
+      const res = await fetch(`${API_ROOT}/markers`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -82,7 +83,7 @@ function MapWithList() {
       if (beforeFile) {
         body.before_img = await fileToBase64(beforeFile);
       }
-      const res = await fetch(`http://localhost:8000/api/markers/${id}/edit`, {
+      const res = await fetch(`${API_ROOT}/markers/${id}/edit`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -102,7 +103,7 @@ function MapWithList() {
 
   // Update marker status
   const updateStatus = async (id, status) => {
-    const res = await fetch(`http://localhost:8000/api/markers/${id}/status`, {
+    const res = await fetch(`${API_ROOT}/markers/${id}/status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
@@ -117,7 +118,7 @@ function MapWithList() {
   const completeTask = async (id, imageFile) => {
     try {
       const after_img = await fileToBase64(imageFile);
-      const res = await fetch(`http://localhost:8000/api/markers/${id}/complete`, {
+      const res = await fetch(`${API_ROOT}/markers/${id}/complete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ after_img }),
@@ -136,7 +137,7 @@ function MapWithList() {
   // Delete marker (actual DB delete, only pending allowed by server)
   const deleteMarker = async (id) => {
     try {
-      const res = await fetch(`http://localhost:8000/api/markers/${id}`, {
+      const res = await fetch(`${API_ROOT}/markers/${id}`, {
         method: "DELETE",
       });
       if (res.ok) {
@@ -153,7 +154,7 @@ function MapWithList() {
 
   // Update marker remark
   const updateRemark = async (id, remark) => {
-    const res = await fetch(`http://localhost:8000/api/markers/${id}/remark`, {
+    const res = await fetch(`${API_ROOT}/markers/${id}/remark`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ remark }),

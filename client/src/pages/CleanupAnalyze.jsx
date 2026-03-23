@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Upload, CheckCircle, XCircle, Loader } from "lucide-react";
 import Navbar from "../components/Navbar";
+import { aiApiUrl } from "../utils/api";
 
 const CleanupAnalyze = () => {
   const [beforeFile, setBeforeFile] = useState(null);
@@ -10,8 +11,6 @@ const CleanupAnalyze = () => {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  const AI_URL = import.meta.env.VITE_AI_API_URL || "http://localhost:8001";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,7 +29,7 @@ const CleanupAnalyze = () => {
       formData.append("after", afterFile);
       formData.append("location", location);
 
-      const res = await fetch(`${AI_URL}/cleanup/analyze`, {
+      const res = await fetch(aiApiUrl("/cleanup/analyze"), {
         method: "POST",
         body: formData,
       });
