@@ -19,14 +19,15 @@ export const useSocket = (orgId, groupId = null, user = null) => {
   const typingTimeoutRef = useRef(null);
 
   useEffect(() => {
+    // Always reset messages when group/org/user changes to prevent stale data
+    setMessages([]);
+    setTypingUsers([]);
+    setOnlineUsers([]);
+    setCurrentGroup(null);
+    setError(null);
+
     if (!orgId || !groupId || !user) {
-      // Clear state when no group/user is selected
       setIsConnected(false);
-      setMessages([]);
-      setTypingUsers([]);
-      setOnlineUsers([]);
-      setCurrentGroup(null);
-      setError(null);
       return;
     }
 
@@ -69,14 +70,18 @@ export const useSocket = (orgId, groupId = null, user = null) => {
       setIsConnected(false);
     });
 
-    // Chat message handlers
+    // Chat message handlers — only NEW messages arriving after history is loaded via REST
     newSocket.on("receive_message", (message) => {
-      setMessages((prev) => [...prev, message]);
+      setMessages((prev) => {
+        // Dedup guard: don't add if _id already exists (prevents double-add on reconnect)
+        if (message._id && prev.some((m) => m._id === message._id)) return prev;
+        return [...prev, message];
+      });
     });
 
-    newSocket.on("message_history", (history) => {
-      setMessages(history);
-    });
+    // message_history is intentionally NOT handled here.
+    // Message history is loaded via REST (chatAPI.getMessages) in ChatCommunity.
+    // Handling it here too would cause every message to appear twice.
 
     // Group info handler
     newSocket.on("group_info", (groupInfo) => {

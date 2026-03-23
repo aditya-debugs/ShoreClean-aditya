@@ -213,10 +213,22 @@ const ChatCommunity = () => {
   const inputRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
-  // Auto-scroll
+  // Absorb new socket messages into chatHistory (single source of truth).
+  // This ensures edit/delete handlers work on all messages, not just REST-loaded ones.
+  useEffect(() => {
+    if (socketMessages.length === 0) return;
+    setChatHistory((prev) => {
+      const seenIds = new Set(prev.map((m) => m._id?.toString()).filter(Boolean));
+      const fresh = socketMessages.filter((m) => !m._id || !seenIds.has(m._id.toString()));
+      if (fresh.length === 0) return prev;
+      return [...prev, ...fresh];
+    });
+  }, [socketMessages]);
+
+  // Auto-scroll whenever the message list grows
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [socketMessages, chatHistory]);
+  }, [chatHistory.length]);
 
   // Load groups
   const loadGroups = useCallback(async () => {
@@ -246,7 +258,7 @@ const ChatCommunity = () => {
     loadGroups();
   }, [loadGroups]);
 
-  // Load message history when group changes
+  // Load message history when group changes — REST is the single source of truth for history
   useEffect(() => {
     if (!selectedGroup) {
       setChatHistory([]);
@@ -265,7 +277,7 @@ const ChatCommunity = () => {
       }
     };
     load();
-  }, [selectedGroup]);
+  }, [selectedGroup?._id]); // use _id to avoid re-running on object reference changes
 
   const handleGroupSelect = (group) => {
     setSelectedGroup(group);
@@ -331,7 +343,8 @@ const ChatCommunity = () => {
     );
   }
 
-  const allMessages = [...chatHistory, ...socketMessages];
+  // chatHistory is the single source of truth (REST + absorbed socket messages).
+  const allMessages = chatHistory;
   const messageGroups = byDate(allMessages);
 
   // Use consistent member count from group data (not socket's live user count which only shows connected users)
@@ -832,7 +845,7 @@ const ChatCommunity = () => {
   return (
     <>
       <Navbar />
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-teal-50 pt-24">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-teal-50 pt-28">
         <div className="max-w-3xl mx-auto px-4 pb-8">
           {selectedGroup ? renderChat() : renderGroupList()}
         </div>
