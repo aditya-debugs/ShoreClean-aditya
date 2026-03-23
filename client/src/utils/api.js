@@ -30,6 +30,14 @@ const api = axios.create({
 // Request interceptor to add auth token to all requests
 api.interceptors.request.use(
   (config) => {
+    // Check direct token first
+    const directToken = localStorage.getItem("token");
+    if (directToken) {
+      config.headers.Authorization = `Bearer ${directToken}`;
+      return config;
+    }
+
+    // Fallback to user.token
     const userData = localStorage.getItem("user");
     if (userData) {
       try {
@@ -267,9 +275,36 @@ export const getDonations = async () => {
 };
 
 // Certificate API functions
-export const getCertificates = async () => {
+export const getCertificates = async (params = {}) => {
   try {
-    const response = await api.get("/certificates");
+    const response = await api.get("/certificates", { params });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getCertificateById = async (id) => {
+  try {
+    const response = await api.get(`/certificates/${id}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const issueCertificate = async (eventId, userId) => {
+  try {
+    const response = await api.post("/certificates/issue", { eventId, userId });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const issueCertificatesForEvent = async (eventId) => {
+  try {
+    const response = await api.post(`/certificates/issue-event/${eventId}`);
     return response.data;
   } catch (error) {
     throw error;
@@ -281,6 +316,15 @@ export const downloadCertificate = async (certificateId) => {
     const response = await api.get(`/certificates/${certificateId}/download`, {
       responseType: "blob",
     });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const revokeCertificate = async (certificateId) => {
+  try {
+    const response = await api.delete(`/certificates/${certificateId}`);
     return response.data;
   } catch (error) {
     throw error;

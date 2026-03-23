@@ -145,6 +145,51 @@ function App() {
               }
             />
             <Route
+              path="/dashboard"
+              element={
+                <PrivateRoute>
+                  <OrganizationRoute>
+                    <AdminDashboard />
+                  </OrganizationRoute>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/dashboard"
+              element={
+                <PrivateRoute>
+                  <OrganizationRoute>
+                    <AdminDashboard />
+                  </OrganizationRoute>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/volunteer/dashboard"
+              element={
+                <PrivateRoute>
+                  <OrganizationRoute>
+                    <VolunteerDashboard />
+                  </OrganizationRoute>
+                </PrivateRoute>
+              }
+            />
+
+
+          <Route
+            path="/profile"
+            element={
+              <PrivateRoute>
+                <Profile />
+              </PrivateRoute>
+            }
+          />
+          <Route path="/impact" element={<ComingSoon pageName="Impact" />} />
+          <Route path="/about" element={<ComingSoon pageName="About" />} />
+          <Route path="/map" element={<MapWithList />} />
+
+            {/* ✅ Replace ComingSoon with Donations page */}
+            <Route
               path="/donations"
               element={
                 <PrivateRoute>

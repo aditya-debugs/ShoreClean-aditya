@@ -1,6 +1,7 @@
 const Registration = require("../models/Registration.js");
 const Event = require('../models/Event');
 const User = require('../models/User');
+const Certificate = require('../models/Certificate');
 
 // Register user for event & generate QR
 const registerForEvent = async (req, res) => {
@@ -244,11 +245,33 @@ const checkOutVolunteer = async (req, res) => {
     registration.checkedOutAt = new Date();
     registration.checkedOutBy = req.user.userId;
     await registration.save();
+    
+    // Automatically issue the certificate on checkout
+    let certificateIssued = false;
+    const existingCert = await Certificate.findOne({ event: eventId, user: userId });
+    if (!existingCert) {
+      await Certificate.create({
+        event: eventId,
+        user: userId,
+        issuedAt: new Date(),
+        metadata: {
+          volunteerName: registration.user.name,
+          eventTitle: registration.event.title,
+          eventDate: registration.event.startDate,
+          eventLocation: registration.event.location,
+          issuedBy: req.user.userId,
+        },
+      });
+      certificateIssued = true;
+    }
 
     res.json({
       success: true,
-      message: 'Volunteer checked out successfully',
-      registration
+      message: certificateIssued 
+        ? 'Volunteer checked out and certificate issued automatically!'
+        : 'Volunteer checked out successfully',
+      registration,
+      certificateIssued
     });
   } catch (error) {
     console.error('Check-out error:', error);
@@ -270,7 +293,30 @@ const checkOut = async (req, res) => {
     registration.checkedOutBy = req.user.userId;
     await registration.save();
 
-    res.json({ success: true, message: "Check-out successful", registration });
+    // Automatically issue certificate
+    let certificateIssued = false;
+    const existingCert = await Certificate.findOne({ event: eventId, user: userId });
+    if (!existingCert) {
+      const u = await User.findById(userId);
+      const e = await Event.findById(eventId);
+      if (u && e) {
+        await Certificate.create({
+          event: eventId,
+          user: userId,
+          issuedAt: new Date(),
+          metadata: {
+            volunteerName: u.name,
+            eventTitle: e.title,
+            eventDate: e.startDate,
+            eventLocation: e.location,
+            issuedBy: req.user.userId,
+          },
+        });
+        certificateIssued = true;
+      }
+    }
+
+    res.json({ success: true, message: certificateIssued ? "Check-out successful, certificate issued!" : "Check-out successful", registration, certificateIssued });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

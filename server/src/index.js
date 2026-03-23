@@ -1,6 +1,6 @@
 // server/src/index.js
 // ShoreClean Backend Server - Main Entry Point
-require("dotenv").config({ path: __dirname + "/.env" });
+require("dotenv").config({ path: __dirname + "/../.env" });
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const http = require("http");

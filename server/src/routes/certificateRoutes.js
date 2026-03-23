@@ -1,23 +1,32 @@
 // server/src/routes/certificateRoutes.js
 const express = require('express');
 const router = express.Router();
-const { protect, authorize } = require('../middlewares/authMiddleware');
-const { issueCertificate, listCertificates } = require('../controllers/certificateController');
+const { protect } = require('../middlewares/authMiddleware');
+const {
+  issueCertificatesForEvent,
+  issueCertificate,
+  listCertificates,
+  getCertificateById,
+  downloadCertificate,
+  deleteCertificate,
+} = require('../controllers/certificateController');
 
-router.post('/issue', protect, authorize('org', 'admin'), issueCertificate); // org/admin issues
+// Issue certificates to all eligible volunteers for an event (org/admin)
+router.post('/issue-event/:eventId', protect, issueCertificatesForEvent);
+
+// Issue a single certificate manually (org/admin)
+router.post('/issue', protect, issueCertificate);
+
+// List certificates (volunteer sees their own; org/admin can filter)
 router.get('/', protect, listCertificates);
-router.get('/:id/download', protect, async (req, res) => {
-  try {
-    const Certificate = require('../models/Certificate');
-    const cert = await Certificate.findById(req.params.id).populate('event', 'title').populate('user', 'name');
-    if (!cert) return res.status(404).json({ message: 'Certificate not found' });
-    // Only allow the cert owner or admin to download
-    if (cert.user._id.toString() !== req.user.userId && req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden' });
-    }
-    res.json({ certUrl: cert.certUrl, cert });
-  } catch (err) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
+
+// Get a single certificate
+router.get('/:id', protect, getCertificateById);
+
+// Download / stream the PDF for a certificate
+router.get('/:id/download', protect, downloadCertificate);
+
+// Revoke / delete a certificate (org/admin)
+router.delete('/:id', protect, deleteCertificate);
+
 module.exports = router;

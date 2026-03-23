@@ -1,0 +1,18 @@
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+D:\Bhumik\Hackathons\HackCelestial-25\Final Project\ShoreClean-Bhumik\node_modules\stripe\cjs\stripe.core.js:156
+                throw new Error('Neither apiKey nor config.authenticator provided');
+                ^
+
+Error: Neither apiKey nor config.authenticator provided
+    at Stripe._setAuthenticator (D:\Bhumik\Hackathons\HackCelestial-25\Final Project\ShoreClean-Bhumik\node_modules\stripe\cjs\stripe.core.js:156:23)
+    at new Stripe (D:\Bhumik\Hackathons\HackCelestial-25\Final Project\ShoreClean-Bhumik\node_modules\stripe\cjs\stripe.core.js:94:14)
+    at Stripe (D:\Bhumik\Hackathons\HackCelestial-25\Final Project\ShoreClean-Bhumik\node_modules\stripe\cjs\stripe.core.js:50:20)
+    at Object.<anonymous> (D:\Bhumik\Hackathons\HackCelestial-25\Final Project\ShoreClean-Bhumik\server\src\controllers\donationController.js:4:16)
+    at Module._compile (node:internal/modules/cjs/loader:1554:14)
+    at Object..js (node:internal/modules/cjs/loader:1706:10)
+    at Module.load (node:internal/modules/cjs/loader:1289:32)
+    at Function._load (node:internal/modules/cjs/loader:1108:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:220:24)
+
+Node.js v22.14.0
